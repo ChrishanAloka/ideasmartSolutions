@@ -24,6 +24,7 @@ app.use('/api/subprojects', require('./routes/subProjectRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/subscription-invoices', require('./routes/subscriptionInvoiceRoutes'));
+app.use('/api/invoices', require('./routes/invoiceRoutes'));
 
 // Welcome route
 app.get('/', (req, res) => {

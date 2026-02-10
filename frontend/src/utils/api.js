@@ -80,4 +80,12 @@ export const subscriptionInvoicesAPI = {
   generateNext: (subProjectId) => api.post(`/subprojects/${subProjectId}/generate-invoice`)
 };
 
+// Invoices API
+export const invoicesAPI = {
+  create: (projectId, type) => api.post('/invoices', { projectId, type }),
+  getOne: (id) => api.get(`/invoices/${id}`),
+  delete: (id) => api.delete(`/invoices/${id}`),
+  getAllForProject: (projectId) => api.get(`/invoices/project/${projectId}`)
+};
+
 export default api;

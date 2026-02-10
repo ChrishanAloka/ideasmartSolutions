@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Modal, Form, Alert, Badge, Tab, Tabs, Table } from 'react-bootstrap';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { projectsAPI, subProjectsAPI, paymentsAPI } from '../utils/api';
+import { projectsAPI, subProjectsAPI, paymentsAPI, invoicesAPI } from '../utils/api';
 
 function ProjectDetails({ user }) {
   const { id } = useParams();
@@ -9,18 +9,19 @@ function ProjectDetails({ user }) {
   const [project, setProject] = useState(null);
   const [subProjects, setSubProjects] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Modals
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSubProjectModal, setShowSubProjectModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  
+
   // Edit states
   const [editingSubProject, setEditingSubProject] = useState(null);
-  
+
   // Form data
   const [projectFormData, setProjectFormData] = useState({
     name: '',
@@ -58,16 +59,18 @@ function ProjectDetails({ user }) {
 
   const fetchProjectData = async () => {
     try {
-      const [projectRes, subProjectsRes, paymentsRes] = await Promise.all([
+      const [projectRes, subProjectsRes, paymentsRes, invoicesRes] = await Promise.all([
         projectsAPI.getOne(id),
         subProjectsAPI.getAll(id),
-        paymentsAPI.getAll(id)
+        paymentsAPI.getAll(id),
+        invoicesAPI.getAllForProject(id)
       ]);
-      
+
       setProject(projectRes.data);
       setSubProjects(subProjectsRes.data);
       setPayments(paymentsRes.data);
-      
+      setInvoices(invoicesRes.data);
+
       setProjectFormData({
         name: projectRes.data.name,
         clientName: projectRes.data.clientName,
@@ -76,7 +79,7 @@ function ProjectDetails({ user }) {
         description: projectRes.data.description || '',
         status: projectRes.data.status
       });
-      
+
       setLoading(false);
     } catch (err) {
       setError('Failed to load project details');
@@ -116,7 +119,7 @@ function ProjectDetails({ user }) {
       } else {
         await subProjectsAPI.create(id, subProjectFormData);
       }
-      
+
       setShowSubProjectModal(false);
       setEditingSubProject(null);
       setSubProjectFormData({
@@ -216,6 +219,39 @@ function ProjectDetails({ user }) {
     });
   };
 
+  const handleGenerateInvoice = async () => {
+    try {
+      if (!window.confirm('Generate a new invoice based on current project status?')) return;
+      const response = await invoicesAPI.create(id, 'Invoice');
+      navigate(`/invoice/${response.data._id}`);
+    } catch (err) {
+      setError('Failed to generate invoice');
+    }
+  };
+
+  const handleGenerateQuotation = async () => {
+    try {
+      if (!window.confirm('Generate a new quotation based on current project status?')) return;
+      const response = await invoicesAPI.create(id, 'Quotation');
+      navigate(`/quotation/${response.data._id}`);
+    } catch (err) {
+      setError('Failed to generate quotation');
+    }
+  };
+
+  const handleDeleteInvoice = async (invoiceId) => {
+    try {
+      if (!window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) return;
+      await invoicesAPI.delete(invoiceId);
+      // Refresh invoices list
+      const response = await invoicesAPI.getAllForProject(id);
+      setInvoices(response.data);
+    } catch (err) {
+      setError('Failed to delete document');
+      console.error(err);
+    }
+  };
+
   if (loading) {
     return (
       <Container className="py-5 text-center">
@@ -265,12 +301,10 @@ function ProjectDetails({ user }) {
                 <i className="bi bi-pencil me-2"></i>
                 Edit Project
               </Button>
-              <Link to={`/invoice/${project._id}`}>
-                <Button variant="success">
-                  <i className="bi bi-file-earmark-text me-2"></i>
-                  Generate Invoice
-                </Button>
-              </Link>
+              <Button variant="success" onClick={handleGenerateInvoice}>
+                <i className="bi bi-file-earmark-text me-2"></i>
+                Generate Invoice
+              </Button>
               <Button variant="outline-danger" onClick={() => setShowDeleteModal(true)}>
                 <i className="bi bi-trash"></i>
               </Button>
@@ -314,9 +348,9 @@ function ProjectDetails({ user }) {
         <Card.Body>
           <h6 className="mb-3">Payment Progress</h6>
           <div className="progress" style={{ height: '25px' }}>
-            <div 
-              className="progress-bar bg-success" 
-              role="progressbar" 
+            <div
+              className="progress-bar bg-success"
+              role="progressbar"
               style={{ width: `${paymentProgress}%` }}
             >
               {Math.round(paymentProgress)}%
@@ -332,9 +366,9 @@ function ProjectDetails({ user }) {
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5 className="mb-0">Sub-Projects</h5>
-                <Button 
-                  variant="primary" 
-                  size="sm" 
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => {
                     setEditingSubProject(null);
                     setSubProjectFormData({
@@ -396,16 +430,16 @@ function ProjectDetails({ user }) {
                             </Badge>
                           </td>
                           <td>
-                            <Button 
-                              variant="outline-primary" 
-                              size="sm" 
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
                               className="me-2"
                               onClick={() => handleEditSubProject(subProject)}
                             >
                               <i className="bi bi-pencil"></i>
                             </Button>
-                            <Button 
-                              variant="outline-danger" 
+                            <Button
+                              variant="outline-danger"
                               size="sm"
                               onClick={() => handleSubProjectDelete(subProject._id)}
                             >
@@ -458,8 +492,8 @@ function ProjectDetails({ user }) {
                           <td>{payment.paymentMethod}</td>
                           <td>{payment.reference || '-'}</td>
                           <td>
-                            <Button 
-                              variant="outline-danger" 
+                            <Button
+                              variant="outline-danger"
                               size="sm"
                               onClick={() => handlePaymentDelete(payment._id)}
                             >
@@ -476,6 +510,79 @@ function ProjectDetails({ user }) {
                         <th colSpan="3"></th>
                       </tr>
                     </tfoot>
+                  </Table>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Tab>
+
+        <Tab eventKey="documents" title={`Invoices & Quotations (${invoices.length})`}>
+          <Card>
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0">Generated Documents</h5>
+                <div className="d-flex gap-2">
+                  <Button variant="outline-primary" size="sm" onClick={handleGenerateQuotation}>
+                    <i className="bi bi-file-text me-2"></i>
+                    Generate Quotation
+                  </Button>
+                  <Button variant="outline-success" size="sm" onClick={handleGenerateInvoice}>
+                    <i className="bi bi-file-earmark-text me-2"></i>
+                    Generate Invoice
+                  </Button>
+                </div>
+              </div>
+
+              {invoices.length === 0 ? (
+                <div className="text-center py-4">
+                  <i className="bi bi-files" style={{ fontSize: '3rem', color: '#ccc' }}></i>
+                  <p className="text-muted mt-2">No documents generated yet</p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <Table hover>
+                    <thead>
+                      <tr>
+                        <th>Document No</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.map((doc) => (
+                        <tr key={doc._id}>
+                          <td><strong>{doc.documentId}</strong></td>
+                          <td>
+                            <Badge bg={doc.type === 'Invoice' ? 'primary' : 'info'}>{doc.type}</Badge>
+                          </td>
+                          <td>{formatDate(doc.createdAt)}</td>
+                          <td>Rs. {doc.totalAmount.toLocaleString()}</td>
+                          <td>
+                            <Badge bg={doc.status === 'Paid' ? 'success' : 'secondary'}>{doc.status}</Badge>
+                          </td>
+                          <td>
+                            <div className="d-flex gap-2">
+                              <Link to={doc.type === 'Invoice' ? `/invoice/${doc._id}` : `/quotation/${doc._id}`}>
+                                <Button variant="outline-primary" size="sm">
+                                  <i className="bi bi-eye"></i>
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => handleDeleteInvoice(doc._id)}
+                              >
+                                <i className="bi bi-trash"></i>
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
                   </Table>
                 </div>
               )}
@@ -724,8 +831,8 @@ function ProjectDetails({ user }) {
                 type="checkbox"
                 label="This is a subscription-based service"
                 checked={subProjectFormData.isSubscription}
-                onChange={(e) => setSubProjectFormData({ 
-                  ...subProjectFormData, 
+                onChange={(e) => setSubProjectFormData({
+                  ...subProjectFormData,
                   isSubscription: e.target.checked,
                   subscriptionType: e.target.checked ? 'Monthly' : 'None'
                 })}

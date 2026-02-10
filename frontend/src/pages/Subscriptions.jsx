@@ -26,10 +26,10 @@ function Subscriptions({ user }) {
     try {
       const projectsRes = await projectsAPI.getAll();
       setProjects(projectsRes.data);
-      
+
       // Load all subscriptions
       await loadAllSubscriptions(projectsRes.data);
-      
+
       setLoading(false);
     } catch (err) {
       setError('Failed to load data');
@@ -40,18 +40,18 @@ function Subscriptions({ user }) {
   const loadAllSubscriptions = async (projectsList) => {
     try {
       let allSubs = [];
-      
+
       for (const project of projectsList) {
         const subProjectsRes = await subProjectsAPI.getAll(project._id);
         const subscriptionSubs = subProjectsRes.data.filter(sp => sp.isSubscription);
-        
+
         allSubs = [...allSubs, ...subscriptionSubs.map(sub => ({
           ...sub,
           projectName: project.name,
           projectId: project._id
         }))];
       }
-      
+
       setSubscriptions(allSubs);
     } catch (err) {
       console.error('Failed to load subscriptions:', err);
@@ -60,7 +60,7 @@ function Subscriptions({ user }) {
 
   const loadProjectSubscriptions = async () => {
     if (selectedProject === 'All') return;
-    
+
     try {
       const invoicesRes = await subscriptionInvoicesAPI.getAllForProject(selectedProject);
       setInvoices(invoicesRes.data);
@@ -86,7 +86,7 @@ function Subscriptions({ user }) {
     try {
       setError('');
       setSuccess('');
-      await subscriptionInvoicesAPI.update(invoiceId, { 
+      await subscriptionInvoicesAPI.update(invoiceId, {
         status: 'Paid',
         paidDate: new Date()
       });
@@ -119,7 +119,7 @@ function Subscriptions({ user }) {
   const getNextBillingDate = (subscription) => {
     if (!subscription.nextBillingDate) {
       if (!subscription.subscriptionStartDate) return 'Not set';
-      
+
       const nextDate = new Date(subscription.subscriptionStartDate);
       if (subscription.subscriptionType === 'Monthly') {
         nextDate.setMonth(nextDate.getMonth() + 1);
@@ -147,15 +147,15 @@ function Subscriptions({ user }) {
       <Row className="mb-4">
         <Col>
           <div style={{ animation: 'fadeIn 0.6s ease-out' }}>
-            <h2 style={{ 
-              fontWeight: '800', 
+            <h2 style={{
+              fontWeight: '800',
               background: 'linear-gradient(135deg, #667eea, #764ba2)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
               marginBottom: '0.5rem'
             }}>
-              <i className="bi bi-arrow-repeat me-3" style={{ 
+              <i className="bi bi-arrow-repeat me-3" style={{
                 background: 'linear-gradient(135deg, #667eea, #764ba2)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
@@ -201,7 +201,7 @@ function Subscriptions({ user }) {
             <h3 className="mb-0">
               Rs. {subscriptions.reduce((sum, s) => sum + s.price, 0).toLocaleString()}
             </h3>
-            <small>Monthly Revenue</small>
+            <small>Annual Revenue</small>
           </Card>
         </Col>
       </Row>
