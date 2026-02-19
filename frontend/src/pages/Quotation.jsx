@@ -68,7 +68,7 @@ function Quotation() {
         .invoice-footer .col-md-4 { width: 35% !important; flex: 0 0 35% !important; margin-right: 2% !important; }
         .invoice-footer .col-md-8 { width: 63% !important; flex: 0 0 63% !important; }
         .invoice-footer h6 { font-size: 0.9rem !important; margin-bottom: 0.2rem !important; }
-        .invoice-footer p { font-size: 0.75rem !important; line-height: 1.2 !important; }
+        .invoice-footer p, .invoice-footer ul, .invoice-footer li { font-size: 0.75rem !important; line-height: 1.2 !important; }
       }
     `;
         document.head.appendChild(style);
@@ -240,11 +240,44 @@ function Quotation() {
                             </p>
                         </Col>
                     </Row>
-                    <div className="text-center mt-4">
-                        <p className="text-muted small mb-0">
-                            Thank you for considering IdeaSmart Solutions!
+                    {/* Our Services Section */}
+                    <div className="mt-4 pt-3 border-top invoice-footer">
+                        <h6 className="mb-3 text-primary fw-bold">Our Professional Services</h6>
+
+                        <Row>
+                            <Col md={6}>
+                                <ul className="small text-muted mb-2">
+                                    <li>Custom Web Systems Development</li>
+                                    <li>Business & Corporate Websites</li>
+                                    <li>Startup Branding & Identity Design</li>
+                                    <li>Google Maps Business Listing</li>
+                                </ul>
+                            </Col>
+
+                            <Col md={6}>
+                                <ul className="small text-muted mb-2">
+                                    <li>Social Media Presence Development</li>
+                                    <li>Digital Marketing & Promotions</li>
+                                    <li>Technology Consultation & Business Upgrading</li>
+                                    <li>Business Rebranding & Market Expansion Strategies</li>
+                                </ul>
+                            </Col>
+                        </Row>
+
+                        <p className="small text-muted mt-2 mb-0">
+                            We design, develop and customize web systems according to customer requirements.
+                            We help newly started businesses establish their presence, upgrade with modern technology,
+                            and rebrand themselves to capture more customers and expand their market reach.
                         </p>
                     </div>
+
+                    {/* Thank You */}
+                    <div className="text-center mt-4">
+                        <p className="text-muted small mb-0">
+                            We look forward to building your success together.
+                        </p>
+                    </div>
+
                 </div>
             </div>
         </Container>
