@@ -296,7 +296,7 @@ function Invoice() {
           </Row>
           <div className="text-center mt-4">
             <p className="text-muted small mb-0">
-              Thank you for choosing IdeaSmart Solutions!
+              Thank you for choosing ideaSmart Solutions!
             </p>
           </div>
         </div>
