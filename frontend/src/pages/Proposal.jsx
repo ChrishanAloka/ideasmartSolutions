@@ -4,23 +4,23 @@ import { useParams, Link } from 'react-router-dom';
 import { invoicesAPI } from '../utils/api';
 import logo from '../assets/logo2.png';
 
-function Quotation() {
+function Proposal() {
     const { id } = useParams();
-    const [quotation, setQuotation] = useState(null);
+    const [proposal, setProposal] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        fetchQuotationData();
+        fetchProposalData();
     }, [id]);
 
-    const fetchQuotationData = async () => {
+    const fetchProposalData = async () => {
         try {
             const response = await invoicesAPI.getOne(id);
-            setQuotation(response.data);
+            setProposal(response.data);
             setLoading(false);
         } catch (err) {
-            setError('Failed to load quotation data');
+            setError('Failed to load proposal data');
             setLoading(false);
         }
     };
@@ -92,10 +92,10 @@ function Quotation() {
         );
     }
 
-    if (!quotation) {
+    if (!proposal) {
         return (
             <Container className="py-5 text-center">
-                <Alert variant="danger">Quotation not found</Alert>
+                <Alert variant="danger">Proposal not found</Alert>
                 <Link to="/dashboard">
                     <Button variant="primary">Back to Dashboard</Button>
                 </Link>
@@ -108,7 +108,7 @@ function Quotation() {
             {/* Action Buttons */}
             <Row className="mb-4 no-print">
                 <Col>
-                    <Link to={`/project/${quotation.project ? quotation.project._id : ''}`} className="text-decoration-none">
+                    <Link to={`/project/${proposal.project ? proposal.project._id : ''}`} className="text-decoration-none">
                         <Button variant="outline-secondary" className="me-2">
                             <i className="bi bi-arrow-left me-2"></i>
                             Back to Project
@@ -124,14 +124,14 @@ function Quotation() {
                         }}
                     >
                         <i className="bi bi-printer me-2"></i>
-                        Print Quotation
+                        Print Proposal
                     </Button>
                 </Col>
             </Row>
 
             {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
-            {/* Quotation Document */}
+            {/* Proposal Document */}
             <div className="invoice-container">
                 {/* Header */}
                 <div className="invoice-header">
@@ -145,10 +145,10 @@ function Quotation() {
                             <p className="text-muted small mb-0">Phone: (+94)76 811 9 360 / (+94)33 220 9 360</p>
                         </Col>
                         <Col md={6} className="text-md-end">
-                            <h2 className="text-primary mb-3">QUOTATION</h2>
-                            <p className="mb-1"><strong>Quotation No:</strong> {quotation.documentId}</p>
-                            <p className="mb-1"><strong>Date:</strong> {formatDate(quotation.createdAt)}</p>
-                            <p className="mb-0"><strong>Valid Until:</strong> {formatDate(new Date(new Date(quotation.createdAt).setDate(new Date(quotation.createdAt).getDate() + 30)))}</p>
+                            <h2 className="text-primary mb-3">PROPOSAL</h2>
+                            <p className="mb-1"><strong>Proposal No:</strong> {proposal.documentId}</p>
+                            <p className="mb-1"><strong>Date:</strong> {formatDate(proposal.createdAt)}</p>
+                            <p className="mb-0"><strong>Valid Until:</strong> {formatDate(new Date(new Date(proposal.createdAt).setDate(new Date(proposal.createdAt).getDate() + 30)))}</p>
                         </Col>
                     </Row>
                 </div>
@@ -156,33 +156,33 @@ function Quotation() {
                 {/* Bill To Section */}
                 <Row className="mb-4 mt-4 bill-to-section">
                     <Col md={6}>
-                        <h5 className="mb-3">Quotation For:</h5>
-                        <p className="mb-1"><strong>{quotation.clientDetails.name}</strong></p>
-                        {quotation.clientDetails.email && <p className="mb-1">{quotation.clientDetails.email}</p>}
-                        {quotation.clientDetails.phone && <p className="mb-0">{quotation.clientDetails.phone}</p>}
+                        <h5 className="mb-3">Proposal For:</h5>
+                        <p className="mb-1"><strong>{proposal.clientDetails.name}</strong></p>
+                        {proposal.clientDetails.email && <p className="mb-1">{proposal.clientDetails.email}</p>}
+                        {proposal.clientDetails.phone && <p className="mb-0">{proposal.clientDetails.phone}</p>}
                     </Col>
                     <Col md={6} className="text-md-end">
                         <h5 className="mb-3">Project Details:</h5>
-                        <p className="mb-1"><strong>{quotation.projectDetails.name}</strong></p>
-                        {quotation.projectDetails.description && (
-                            <p className="mb-0 text-muted small">{quotation.projectDetails.description}</p>
+                        <p className="mb-1"><strong>{proposal.projectDetails.name}</strong></p>
+                        {proposal.projectDetails.description && (
+                            <p className="mb-0 text-muted small">{proposal.projectDetails.description}</p>
                         )}
                     </Col>
                 </Row>
 
                 {/* Items Table */}
                 <div className="mb-4">
-                    <h5 className="mb-3">Scope of Work & Pricing</h5>
+                    <h5 className="mb-3">Scope of Work & Technical Proposal</h5>
                     <Table className="invoice-table" bordered hover>
                         <thead>
                             <tr>
                                 <th style={{ width: '5%' }}>#</th>
-                                <th style={{ width: '75%' }}>Description</th>
-                                <th style={{ width: '20%' }} className="text-end">Amount (Rs.)</th>
+                                <th style={{ width: '75%' }}>Solution Description</th>
+                                <th style={{ width: '20%' }} className="text-end">Investment (Rs.)</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {quotation.items.map((item, index) => (
+                            {proposal.items.map((item, index) => (
                                 <tr key={index}>
                                     <td>{index + 1}</td>
                                     <td>
@@ -206,9 +206,9 @@ function Quotation() {
                         <Table className="mb-0">
                             <tbody>
                                 <tr>
-                                    <td className="text-start"><strong>Total Amount:</strong></td>
+                                    <td className="text-start"><strong>Estimated Total:</strong></td>
                                     <td className="text-end" style={{ width: '40%' }}>
-                                        <strong>Rs. {quotation.totalAmount.toLocaleString()}</strong>
+                                        <strong>Rs. {proposal.totalAmount.toLocaleString()}</strong>
                                     </td>
                                 </tr>
                             </tbody>
@@ -251,4 +251,4 @@ function Quotation() {
     );
 }
 
-export default Quotation;
+export default Proposal;

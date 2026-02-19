@@ -5,7 +5,9 @@ const Payment = require('../models/Payment');
 
 // Generate unique ID (INV-YYYY-0001)
 const generateId = async (type) => {
-    const prefix = type === 'Invoice' ? 'INV' : 'QTN';
+    let prefix = 'INV';
+    if (type === 'Quotation') prefix = 'QTN';
+    if (type === 'Proposal') prefix = 'PRP';
     const year = new Date().getFullYear();
 
     // Find the latest document of this type for the current year
@@ -32,8 +34,8 @@ const createInvoice = async (req, res) => {
     try {
         const { projectId, type } = req.body;
 
-        if (!['Invoice', 'Quotation'].includes(type)) {
-            return res.status(400).json({ message: 'Invalid type. Must be Invoice or Quotation' });
+        if (!['Invoice', 'Quotation', 'Proposal'].includes(type)) {
+            return res.status(400).json({ message: 'Invalid type. Must be Invoice, Quotation or Proposal' });
         }
 
         const project = await MainProject.findById(projectId);

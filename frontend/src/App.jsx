@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import ProjectDetails from './pages/ProjectDetails';
 import Invoice from './pages/Invoice';
 import Quotation from './pages/Quotation';
+import Proposal from './pages/Proposal';
 import Tasks from './pages/Tasks';
 import Subscriptions from './pages/Subscriptions';
 import SubscriptionInvoice from './pages/SubscriptionInvoice';
@@ -71,6 +72,10 @@ function App() {
         <Route
           path="/quotation/:id"
           element={user ? <Quotation user={user} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/proposal/:id"
+          element={user ? <Proposal user={user} /> : <Navigate to="/login" />}
         />
         <Route
           path="/tasks"

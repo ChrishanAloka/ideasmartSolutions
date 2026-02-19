@@ -8,7 +8,7 @@ const invoiceSchema = mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['Invoice', 'Quotation'],
+        enum: ['Invoice', 'Quotation', 'Proposal'],
         required: true
     },
     documentId: {

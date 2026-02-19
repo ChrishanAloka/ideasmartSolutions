@@ -68,7 +68,7 @@ function Invoice() {
         .invoice-footer .col-md-4 { width: 35% !important; flex: 0 0 35% !important; margin-right: 2% !important; }
         .invoice-footer .col-md-8 { width: 63% !important; flex: 0 0 63% !important; }
         .invoice-footer h6 { font-size: 0.9rem !important; margin-bottom: 0.2rem !important; }
-        .invoice-footer p { font-size: 0.8rem !important; line-height: 1.2 !important; }
+        .invoice-footer p { font-size: 0.75rem !important; line-height: 1.2 !important; }
       }
     `;
     document.head.appendChild(style);

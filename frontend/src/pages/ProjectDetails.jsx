@@ -239,6 +239,16 @@ function ProjectDetails({ user }) {
     }
   };
 
+  const handleGenerateProposal = async () => {
+    try {
+      if (!window.confirm('Generate a new proposal based on current project status?')) return;
+      const response = await invoicesAPI.create(id, 'Proposal');
+      navigate(`/proposal/${response.data._id}`);
+    } catch (err) {
+      setError('Failed to generate proposal');
+    }
+  };
+
   const handleDeleteInvoice = async (invoiceId) => {
     try {
       if (!window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) return;
@@ -300,6 +310,10 @@ function ProjectDetails({ user }) {
               <Button variant="outline-primary" onClick={() => setShowEditModal(true)}>
                 <i className="bi bi-pencil me-2"></i>
                 Edit Project
+              </Button>
+              <Button variant="outline-info" onClick={handleGenerateProposal}>
+                <i className="bi bi-file-earmark-diff me-2"></i>
+                Generate Proposal
               </Button>
               <Button variant="success" onClick={handleGenerateInvoice}>
                 <i className="bi bi-file-earmark-text me-2"></i>
@@ -517,12 +531,16 @@ function ProjectDetails({ user }) {
           </Card>
         </Tab>
 
-        <Tab eventKey="documents" title={`Invoices & Quotations (${invoices.length})`}>
+        <Tab eventKey="documents" title={`Docs (${invoices.length})`}>
           <Card>
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5 className="mb-0">Generated Documents</h5>
                 <div className="d-flex gap-2">
+                  <Button variant="outline-info" size="sm" onClick={handleGenerateProposal}>
+                    <i className="bi bi-file-earmark-diff me-2"></i>
+                    Generate Proposal
+                  </Button>
                   <Button variant="outline-primary" size="sm" onClick={handleGenerateQuotation}>
                     <i className="bi bi-file-text me-2"></i>
                     Generate Quotation
@@ -557,7 +575,9 @@ function ProjectDetails({ user }) {
                         <tr key={doc._id}>
                           <td><strong>{doc.documentId}</strong></td>
                           <td>
-                            <Badge bg={doc.type === 'Invoice' ? 'primary' : 'info'}>{doc.type}</Badge>
+                            <Badge bg={doc.type === 'Invoice' ? 'primary' : doc.type === 'Quotation' ? 'info' : 'warning'}>
+                              {doc.type}
+                            </Badge>
                           </td>
                           <td>{formatDate(doc.createdAt)}</td>
                           <td>Rs. {doc.totalAmount.toLocaleString()}</td>
@@ -566,7 +586,7 @@ function ProjectDetails({ user }) {
                           </td>
                           <td>
                             <div className="d-flex gap-2">
-                              <Link to={doc.type === 'Invoice' ? `/invoice/${doc._id}` : `/quotation/${doc._id}`}>
+                              <Link to={doc.type === 'Invoice' ? `/invoice/${doc._id}` : doc.type === 'Quotation' ? `/quotation/${doc._id}` : `/proposal/${doc._id}`}>
                                 <Button variant="outline-primary" size="sm">
                                   <i className="bi bi-eye"></i>
                                 </Button>
