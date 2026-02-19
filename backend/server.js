@@ -38,6 +38,11 @@ app.get('/', (req, res) => {
   });
 });
 
+// Health check
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'OK', message: 'Server is running' });
+});
+
 // Error handler
 app.use(errorHandler);
 
