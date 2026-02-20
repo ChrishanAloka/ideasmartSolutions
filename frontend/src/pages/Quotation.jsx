@@ -68,7 +68,7 @@ function Quotation() {
         .invoice-footer .col-md-4 { width: 35% !important; flex: 0 0 35% !important; margin-right: 2% !important; }
         .invoice-footer .col-md-8 { width: 63% !important; flex: 0 0 63% !important; }
         .invoice-footer h6 { font-size: 0.9rem !important; margin-bottom: 0.2rem !important; }
-        .invoice-footer p, .invoice-footer ul, .invoice-footer li { font-size: 0.75rem !important; line-height: 1.2 !important; }
+        .invoice-footer p, .invoice-footer ul, .invoice-footer li { font-size: 0.75rem !important; line-height: 1.5 !important; }
       }
     `;
         document.head.appendChild(style);
@@ -148,7 +148,7 @@ function Quotation() {
                             <h2 className="text-primary mb-3">QUOTATION</h2>
                             <p className="mb-1"><strong>Quotation No:</strong> {quotation.documentId}</p>
                             <p className="mb-1"><strong>Date:</strong> {formatDate(quotation.createdAt)}</p>
-                            <p className="mb-0"><strong>Valid Until:</strong> {formatDate(new Date(new Date(quotation.createdAt).setDate(new Date(quotation.createdAt).getDate() + 30)))}</p>
+                            <p className="mb-0"><strong>Valid Until:</strong> {formatDate(new Date(new Date(quotation.createdAt).setDate(new Date(quotation.createdAt).getDate() + 14)))}</p>
                         </Col>
                     </Row>
                 </div>
@@ -218,28 +218,34 @@ function Quotation() {
 
                 {/* Footer */}
                 <div className="mt-5 pt-4 border-top invoice-footer">
-                    <Row>
-                        <Col md={4}>
-                            <h6>Payment Information:</h6>
-                            <p className="small text-muted mb-1">
-                                Bank: Hatton National Bank<br />
-                                Account Name: IDEASMART<br />
-                                Account Number: 1300 2008 6965<br />
-                                Branch: Weliweriya
-                            </p>
-                        </Col>
-                        <Col md={8} className="text-md-start">
-                            <h6>Terms & Conditions:</h6>
-                            <p className="small text-muted mb-1">
-                                1. Valid for 14 days from date of issue.<br />
-                                2. 60% of the grand total must be paid as the advance payment. Email us the Online Bank Transfer receipt via <a href="mailto:solutions@ideasmart.lk">solutions@ideasmart.lk</a> or WhatsApp on 076 811 9 360<br />
-                                3. Balance payment must be paid on the completion day of the project.<br />
-                                4. All the relevant documents, payment receipts, Logins and Passwords will be handed over to
-                                the customer upon the completion of the project. Customer is requested to keep that “Project File” safe.<br />
-                                5. If lost, there will be a charge to issue any documents of the “Project File”.
-                            </p>
-                        </Col>
-                    </Row>
+                    <div className="invoice-footer">
+                        <Row>
+                            <Col md={12} className="text-md-start">
+                                <h6>Terms & Conditions:</h6>
+                                <p className="small text-muted mb-1">
+                                    1. Valid for 14 days from date of issue.<br />
+                                    2. 60% of the grand total must be paid as the advance payment. Email us the Online Bank Transfer receipt via <a href="mailto:solutions@ideasmart.lk">solutions@ideasmart.lk</a> or WhatsApp on 076 811 9 360<br />
+                                    3. Balance payment must be paid on the completion day of the project.<br />
+                                    4. All the relevant documents, payment receipts, Logins and Passwords will be handed over to
+                                    the customer upon the completion of the project. Customer is requested to keep that “Project File” safe.<br />
+                                    5. If lost, there will be a charge to issue any documents of the “Project File”.
+                                </p>
+                            </Col>
+                        </Row>
+                    </div>
+                    <div className="mt-4 pt-3 border-top invoice-footer">
+                        <Row>
+                            <Col md={12}>
+                                <h6>Payment Information:</h6>
+                                <p className="small text-muted mb-1">
+                                    Bank: Hatton National Bank<br />
+                                    Account Name: IDEASMART<br />
+                                    Account Number: 1300 2008 6965<br />
+                                    Branch: Weliweriya
+                                </p>
+                            </Col>
+                        </Row>
+                    </div>
                     {/* Our Services Section */}
                     <div className="mt-4 pt-3 border-top invoice-footer">
                         <h6 className="mb-3 text-primary fw-bold">Our Professional Services</h6>

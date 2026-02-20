@@ -68,7 +68,7 @@ function Invoice() {
         .invoice-footer .col-md-4 { width: 35% !important; flex: 0 0 35% !important; margin-right: 2% !important; }
         .invoice-footer .col-md-8 { width: 63% !important; flex: 0 0 63% !important; }
         .invoice-footer h6 { font-size: 0.9rem !important; margin-bottom: 0.2rem !important; }
-        .invoice-footer p { font-size: 0.75rem !important; line-height: 1.2 !important; }
+        .invoice-footer p, .invoice-footer ul, .invoice-footer li { font-size: 0.75rem !important; line-height: 1.2 !important; }
       }
     `;
     document.head.appendChild(style);
@@ -273,27 +273,65 @@ function Invoice() {
 
         {/* Footer */}
         <div className="mt-5 pt-4 border-top invoice-footer">
-          <Row>
-            <Col md={4}>
-              <h6>Payment Information:</h6>
-              <p className="small text-muted mb-1">
-                Bank: Hatton National Bank<br />
-                Account Name: IDEASMART<br />
-                Account Number: 1300 2008 6965<br />
-                Branch: Weliweriya
-              </p>
-            </Col>
-            <Col md={8} className="text-md-start">
-              <h6>Terms & Conditions:</h6>
-              <p className="small text-muted mb-1">
-                60% of the grand total must be paid as the advance payment. Email us the Online Bank Transfer receipt via <a href="mailto:solutions@ideasmart.lk">solutions@ideasmart.lk</a> or WhatsApp on 076 811 9 360<br />
-                Balance payment must be paid on the completion day of the project.<br />
-                All the relevant documents, payment receipts, Logins and Passwords will be handed over to
-                the customer upon the completion of the project. Customer is requested to keep that “Project File” safe.<br />
-                If lost, there will be a charge to issue any documents of the “Project File”.
-              </p>
-            </Col>
-          </Row>
+          <div className="invoice-footer">
+            <Row>
+              <Col md={12} className="text-md-start">
+                <h6>Terms & Conditions:</h6>
+                <p className="small text-muted mb-1">
+                  60% of the grand total must be paid as the advance payment. Email us the Online Bank Transfer receipt via <a href="mailto:solutions@ideasmart.lk">solutions@ideasmart.lk</a> or WhatsApp on 076 811 9 360<br />
+                  Balance payment must be paid on the completion day of the project.<br />
+                  All the relevant documents, payment receipts, Logins and Passwords will be handed over to
+                  the customer upon the completion of the project. Customer is requested to keep that “Project File” safe.<br />
+                  If lost, there will be a charge to issue any documents of the “Project File”.
+                </p>
+              </Col>
+            </Row>
+          </div>
+          <div className="mt-4 pt-3 border-top invoice-footer">
+            <Row>
+              <Col md={12}>
+                <h6>Payment Information:</h6>
+                <p className="small text-muted mb-1">
+                  Bank: Hatton National Bank<br />
+                  Account Name: IDEASMART<br />
+                  Account Number: 1300 2008 6965<br />
+                  Branch: Weliweriya
+                </p>
+              </Col>
+            </Row>
+          </div>
+          {/* Our Services Section */}
+          <div className="mt-4 pt-3 border-top invoice-footer">
+            <h6 className="mb-3 text-primary fw-bold">Our Professional Services</h6>
+
+            <Row>
+              <Col md={6}>
+                <ul className="small text-muted mb-2">
+                  <li>Custom Web Systems Development</li>
+                  <li>Business & Corporate Websites</li>
+                  <li>Startup Branding & Identity Design</li>
+                  <li>Google Maps Business Listing</li>
+                </ul>
+              </Col>
+
+              <Col md={6}>
+                <ul className="small text-muted mb-2">
+                  <li>Social Media Presence Development</li>
+                  <li>Digital Marketing & Promotions</li>
+                  <li>Technology Consultation & Business Upgrading</li>
+                  <li>Business Rebranding & Market Expansion Strategies</li>
+                </ul>
+              </Col>
+            </Row>
+
+            <p className="small text-muted mt-2 mb-0">
+              We design, develop and customize web systems according to customer requirements.
+              We help newly started businesses establish their presence, upgrade with modern technology,
+              and rebrand themselves to capture more customers and expand their market reach.
+            </p>
+          </div>
+
+          {/* Thank You */}
           <div className="text-center mt-4">
             <p className="text-muted small mb-0">
               Thank you for choosing ideaSmart Solutions!

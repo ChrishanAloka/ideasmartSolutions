@@ -68,7 +68,7 @@ function Proposal() {
         .invoice-footer .col-md-4 { width: 35% !important; flex: 0 0 35% !important; margin-right: 2% !important; }
         .invoice-footer .col-md-8 { width: 63% !important; flex: 0 0 63% !important; }
         .invoice-footer h6 { font-size: 0.9rem !important; margin-bottom: 0.2rem !important; }
-        .invoice-footer p, .invoice-footer ul, .invoice-footer li { font-size: 0.75rem !important; line-height: 1.2 !important; }
+        .invoice-footer p, .invoice-footer ul, .invoice-footer li { font-size: 0.75rem !important; line-height: 1.4 !important; }
       }
     `;
         document.head.appendChild(style);
@@ -148,7 +148,7 @@ function Proposal() {
                             <h2 className="text-primary mb-3">PROPOSAL</h2>
                             <p className="mb-1"><strong>Proposal No:</strong> {proposal.documentId}</p>
                             <p className="mb-1"><strong>Date:</strong> {formatDate(proposal.createdAt)}</p>
-                            <p className="mb-0"><strong>Valid Until:</strong> {formatDate(new Date(new Date(proposal.createdAt).setDate(new Date(proposal.createdAt).getDate() + 30)))}</p>
+                            <p className="mb-0"><strong>Valid Until:</strong> {formatDate(new Date(new Date(proposal.createdAt).setDate(new Date(proposal.createdAt).getDate() + 14)))}</p>
                         </Col>
                     </Row>
                 </div>
@@ -217,18 +217,9 @@ function Proposal() {
                 </Row>
 
                 {/* Footer */}
-                <div className="mt-5 pt-4 border-top invoice-footer">
+                <div className="mt-4 pt-4 border-top invoice-footer">
                     <Row>
-                        <Col md={4}>
-                            <h6>Payment Information:</h6>
-                            <p className="small text-muted mb-1">
-                                Bank: Hatton National Bank<br />
-                                Account Name: IDEASMART<br />
-                                Account Number: 1300 2008 6965<br />
-                                Branch: Weliweriya
-                            </p>
-                        </Col>
-                        <Col md={8} className="text-md-start">
+                        <Col md={12} className="text-md-start">
                             <h6>Terms & Conditions:</h6>
                             <p className="small text-muted mb-1">
                                 1. Valid for 14 days from date of issue.<br />
@@ -240,35 +231,50 @@ function Proposal() {
                             </p>
                         </Col>
                     </Row>
-                    <div className="mt-4 pt-3 border-top invoice-footer">
-                        <h6 className="mb-3 text-primary fw-bold">Our Professional Services</h6>
+                </div>
+                <div className="mt-3 pt-3 border-top invoice-footer">
+                    <Row>
+                        <Col md={12}>
+                            <h6>Payment Information:</h6>
+                            <p className="small text-muted mb-1">
+                                Bank: Hatton National Bank<br />
+                                Account Name: IDEASMART<br />
+                                Account Number: 1300 2008 6965<br />
+                                Branch: Weliweriya
+                            </p>
+                        </Col>
+                    </Row>
+                </div>
+                {/* Our Services Section */}
+                <div className="mt-3 pt-3 border-top invoice-footer">
+                    <h6 className="mb-3 text-primary fw-bold">Our Professional Services</h6>
 
-                        <Row>
-                            <Col md={6}>
-                                <ul className="small text-muted mb-2">
-                                    <li>Custom Web Systems Development</li>
-                                    <li>Business & Corporate Websites</li>
-                                    <li>Startup Branding & Identity Design</li>
-                                    <li>Google Business Profile Setup & Optimization</li>
-                                </ul>
-                            </Col>
+                    <Row>
+                        <Col md={6}>
+                            <ul className="small text-muted mb-2">
+                                <li>Custom Web Systems Development</li>
+                                <li>Business & Corporate Websites</li>
+                                <li>Startup Branding & Identity Design</li>
+                                <li>Google Maps Business Listing</li>
+                            </ul>
+                        </Col>
 
-                            <Col md={6}>
-                                <ul className="small text-muted mb-2">
-                                    <li>Social Media Presence Development</li>
-                                    <li>Digital Marketing & Promotions</li>
-                                    <li>Technology Consultation & Business Upgrading</li>
-                                    <li>Business Rebranding & Market Expansion Strategies</li>
-                                </ul>
-                            </Col>
-                        </Row>
+                        <Col md={6}>
+                            <ul className="small text-muted mb-2">
+                                <li>Social Media Presence Development</li>
+                                <li>Digital Marketing & Promotions</li>
+                                <li>Technology Consultation & Business Upgrading</li>
+                                <li>Business Rebranding & Market Expansion Strategies</li>
+                            </ul>
+                        </Col>
+                    </Row>
 
-                        <p className="small text-muted mt-2 mb-0">
-                            We design, develop and customize web systems according to customer requirements.
-                            We help newly started businesses establish their presence, upgrade with modern technology,
-                            and rebrand themselves to capture more customers and expand their market reach.
-                        </p>
-                    </div>
+                    <p className="small text-muted mt-2 mb-0">
+                        We design, develop and customize web systems according to customer requirements.
+                        We help newly started businesses establish their presence, upgrade with modern technology,
+                        and rebrand themselves to capture more customers and expand their market reach.
+                    </p>
+
 
                     {/* Thank You */}
                     <div className="text-center mt-4">
