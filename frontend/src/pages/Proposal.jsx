@@ -192,6 +192,13 @@ function Proposal() {
                                                 {item.description}
                                             </div>
                                         )}
+                                        {item.features && item.features.length > 0 && (
+                                            <ul className="small text-muted mb-0 mt-2 ps-3">
+                                                {item.features.map((feature, i) => (
+                                                    <li key={i}>{feature}</li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </td>
                                     <td className="text-end">{item.amount.toLocaleString()}</td>
                                 </tr>
@@ -253,7 +260,7 @@ function Proposal() {
                         <Col md={6}>
                             <ul className="small text-muted mb-2">
                                 <li>Custom Web Systems Development</li>
-                                <li>Business & Corporate Websites</li>
+                                <li>Business & Corporate Websites Development</li>
                                 <li>Startup Branding & Identity Design</li>
                                 <li>Google Maps Business Listing</li>
                             </ul>

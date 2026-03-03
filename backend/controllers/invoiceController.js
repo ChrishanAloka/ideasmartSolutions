@@ -56,6 +56,7 @@ const createInvoice = async (req, res) => {
         const items = subProjects.map(sp => ({
             name: sp.name,
             description: sp.description,
+            features: sp.features || [],
             amount: sp.price,
             status: sp.status
         }));

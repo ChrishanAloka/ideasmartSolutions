@@ -194,6 +194,13 @@ function Invoice() {
                         {item.description}
                       </div>
                     )}
+                    {item.features && item.features.length > 0 && (
+                      <ul className="small text-muted mb-0 mt-2 ps-3">
+                        {item.features.map((feature, i) => (
+                          <li key={i}>{feature}</li>
+                        ))}
+                      </ul>
+                    )}
                   </td>
                   <td className="text-end">{item.amount.toLocaleString()}</td>
                 </tr>

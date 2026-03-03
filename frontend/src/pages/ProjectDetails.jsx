@@ -42,7 +42,8 @@ function ProjectDetails({ user }) {
     isSubscription: false,
     subscriptionType: 'None',
     subscriptionStartDate: '',
-    subscriptionEndDate: ''
+    subscriptionEndDate: '',
+    features: ''
   });
 
   const [paymentFormData, setPaymentFormData] = useState({
@@ -115,9 +116,15 @@ function ProjectDetails({ user }) {
 
     try {
       if (editingSubProject) {
-        await subProjectsAPI.update(editingSubProject._id, subProjectFormData);
+        await subProjectsAPI.update(editingSubProject._id, {
+          ...subProjectFormData,
+          features: subProjectFormData.features.split('\n').filter(f => f.trim())
+        });
       } else {
-        await subProjectsAPI.create(id, subProjectFormData);
+        await subProjectsAPI.create(id, {
+          ...subProjectFormData,
+          features: subProjectFormData.features.split('\n').filter(f => f.trim())
+        });
       }
 
       setShowSubProjectModal(false);
@@ -132,7 +139,8 @@ function ProjectDetails({ user }) {
         isSubscription: false,
         subscriptionType: 'None',
         subscriptionStartDate: '',
-        subscriptionEndDate: ''
+        subscriptionEndDate: '',
+        features: ''
       });
       fetchProjectData();
     } catch (err) {
@@ -163,7 +171,8 @@ function ProjectDetails({ user }) {
       isSubscription: subProject.isSubscription || false,
       subscriptionType: subProject.subscriptionType || 'None',
       subscriptionStartDate: subProject.subscriptionStartDate ? new Date(subProject.subscriptionStartDate).toISOString().split('T')[0] : '',
-      subscriptionEndDate: subProject.subscriptionEndDate ? new Date(subProject.subscriptionEndDate).toISOString().split('T')[0] : ''
+      subscriptionEndDate: subProject.subscriptionEndDate ? new Date(subProject.subscriptionEndDate).toISOString().split('T')[0] : '',
+      features: subProject.features ? subProject.features.join('\n') : ''
     });
     setShowSubProjectModal(true);
   };
@@ -395,7 +404,8 @@ function ProjectDetails({ user }) {
                       isSubscription: false,
                       subscriptionType: 'None',
                       subscriptionStartDate: '',
-                      subscriptionEndDate: ''
+                      subscriptionEndDate: '',
+                      features: ''
                     });
                     setShowSubProjectModal(true);
                   }}
@@ -429,6 +439,11 @@ function ProjectDetails({ user }) {
                             <strong>{subProject.name}</strong>
                             {subProject.description && (
                               <div className="text-muted small">{subProject.description}</div>
+                            )}
+                            {subProject.features && subProject.features.length > 0 && (
+                              <ul className="small text-primary mb-0 mt-1 ps-3">
+                                {subProject.features.map((f, i) => <li key={i}>{f}</li>)}
+                              </ul>
                             )}
                           </td>
                           <td>Rs. {subProject.price.toLocaleString()}</td>
@@ -781,6 +796,21 @@ function ProjectDetails({ user }) {
                 onChange={(e) => setSubProjectFormData({ ...subProjectFormData, description: e.target.value })}
                 placeholder="Brief description of the sub-project"
               />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Features / Key Details (One per line)</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                name="features"
+                value={subProjectFormData.features}
+                onChange={(e) => setSubProjectFormData({ ...subProjectFormData, features: e.target.value })}
+                placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
+              />
+              <Form.Text className="text-muted">
+                Each line will be shown as a bullet point in the proposal/invoice.
+              </Form.Text>
             </Form.Group>
 
             <Row>

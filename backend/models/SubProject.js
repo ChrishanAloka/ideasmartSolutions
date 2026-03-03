@@ -10,6 +10,10 @@ const subProjectSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  features: [{
+    type: String,
+    trim: true
+  }],
   price: {
     type: Number,
     required: [true, 'Please add a price'],
@@ -62,18 +66,18 @@ const subProjectSchema = new mongoose.Schema({
 });
 
 // Update main project total amount when sub-project is saved or deleted
-subProjectSchema.post('save', async function() {
+subProjectSchema.post('save', async function () {
   await this.updateMainProjectTotal();
 });
 
-subProjectSchema.post('remove', async function() {
+subProjectSchema.post('remove', async function () {
   await this.updateMainProjectTotal();
 });
 
-subProjectSchema.methods.updateMainProjectTotal = async function() {
+subProjectSchema.methods.updateMainProjectTotal = async function () {
   const MainProject = require('./MainProject');
   const subProjects = await mongoose.model('SubProject').find({ mainProject: this.mainProject });
-  
+
   // Only count non-subscription or one-time prices for total
   const totalAmount = subProjects.reduce((sum, sp) => {
     if (!sp.isSubscription) {
@@ -81,22 +85,22 @@ subProjectSchema.methods.updateMainProjectTotal = async function() {
     }
     return sum;
   }, 0);
-  
+
   await MainProject.findByIdAndUpdate(this.mainProject, { totalAmount });
 };
 
 // Calculate next billing date
-subProjectSchema.methods.calculateNextBillingDate = function() {
+subProjectSchema.methods.calculateNextBillingDate = function () {
   if (!this.isSubscription || !this.lastBilledDate) return null;
-  
+
   const nextDate = new Date(this.lastBilledDate);
-  
+
   if (this.subscriptionType === 'Monthly') {
     nextDate.setMonth(nextDate.getMonth() + 1);
   } else if (this.subscriptionType === 'Yearly') {
     nextDate.setFullYear(nextDate.getFullYear() + 1);
   }
-  
+
   return nextDate;
 };
 
