@@ -104,4 +104,49 @@ subProjectSchema.methods.calculateNextBillingDate = function () {
   return nextDate;
 };
 
+// Calculate status based on tasks
+subProjectSchema.methods.calculateStatus = async function () {
+  const Task = mongoose.model('Task');
+  const tasks = await Task.find({ subProject: this._id });
+
+  if (tasks.length === 0) {
+    return this.status; // Keep current status if no tasks
+  }
+
+  const allCompleted = tasks.every(t => t.status === 'Completed');
+  const anyInProgress = tasks.some(t => t.status === 'In Progress' || t.status === 'Review');
+  const anyCancelled = tasks.some(t => t.status === 'Cancelled');
+  const allToDo = tasks.every(t => t.status === 'To Do');
+
+  let newStatus = this.status;
+
+  if (allCompleted) {
+    newStatus = 'Completed';
+  } else if (anyInProgress) {
+    newStatus = 'In Progress';
+  } else if (allToDo) {
+    newStatus = 'Not Started';
+  } else if (tasks.some(t => t.status === 'Completed' || t.status === 'In Progress')) {
+    newStatus = 'In Progress';
+  }
+
+  if (newStatus !== this.status) {
+    this.status = newStatus;
+    await this.save();
+
+    // Also trigger main project status update
+    const MainProject = mongoose.model('MainProject');
+    const mainProject = await MainProject.findById(this.mainProject);
+    if (mainProject) {
+      const mainStatus = await mainProject.calculateStatus();
+      if (mainStatus !== mainProject.status) {
+        mainProject.status = mainStatus;
+        await mainProject.save();
+      }
+    }
+  }
+
+  return newStatus;
+};
+
 module.exports = mongoose.model('SubProject', subProjectSchema);

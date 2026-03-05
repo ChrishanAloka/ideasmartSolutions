@@ -6,7 +6,23 @@ const SubProject = require('../models/SubProject');
 // @access  Private
 const getMainProjects = async (req, res) => {
   try {
-    const projects = await MainProject.find({ user: req.user._id })
+    let query = { user: req.user._id };
+
+    // Developers see projects they have tasks assigned in?
+    // Or maybe developers see all projects? Let's assume developers see all projects for now but can't edit.
+    if (req.user.role === 'admin' || req.user.role === 'developer') {
+      query = {}; // Admins and developers see all? 
+      // Actually, let's keep it restricted to owners unless it's an admin.
+      if (req.user.role === 'admin') query = {};
+      else if (req.user.role === 'developer') {
+        // Developers only see projects where they have assigned tasks
+        const Task = require('../models/Task');
+        const assignedTaskProjects = await Task.find({ assignedTo: req.user._id }).distinct('mainProject');
+        query = { _id: { $in: assignedTaskProjects } };
+      }
+    }
+
+    const projects = await MainProject.find(query)
       .populate('subProjects')
       .sort({ createdAt: -1 });
     res.json(projects);
@@ -27,10 +43,20 @@ const getMainProject = async (req, res) => {
       throw new Error('Project not found');
     }
 
-    // Check user ownership
-    if (project.user.toString() !== req.user._id.toString()) {
-      res.status(401);
-      throw new Error('Not authorized');
+    // Check user access
+    if (req.user.role !== 'admin' && project.user.toString() !== req.user._id.toString()) {
+      // Check if developer has a task in this project
+      if (req.user.role === 'developer') {
+        const Task = require('../models/Task');
+        const hasTask = await Task.findOne({ mainProject: project._id, assignedTo: req.user._id });
+        if (!hasTask) {
+          res.status(401);
+          throw new Error('Not authorized to view this project');
+        }
+      } else {
+        res.status(401);
+        throw new Error('Not authorized');
+      }
     }
 
     res.json(project);
@@ -44,6 +70,10 @@ const getMainProject = async (req, res) => {
 // @access  Private
 const createMainProject = async (req, res) => {
   try {
+    if (req.user.role !== 'admin' && req.user.role !== 'user') {
+      res.status(401);
+      throw new Error('Not authorized to create projects');
+    }
     const project = await MainProject.create({
       ...req.body,
       user: req.user._id
@@ -67,10 +97,10 @@ const updateMainProject = async (req, res) => {
       throw new Error('Project not found');
     }
 
-    // Check user ownership
-    if (project.user.toString() !== req.user._id.toString()) {
+    // Check user access: Admin or Owner
+    if (req.user.role !== 'admin' && project.user.toString() !== req.user._id.toString()) {
       res.status(401);
-      throw new Error('Not authorized');
+      throw new Error('Not authorized to update this project');
     }
 
     const updatedProject = await MainProject.findByIdAndUpdate(
@@ -97,10 +127,10 @@ const deleteMainProject = async (req, res) => {
       throw new Error('Project not found');
     }
 
-    // Check user ownership
-    if (project.user.toString() !== req.user._id.toString()) {
+    // Check user access: Admin or Owner
+    if (req.user.role !== 'admin' && project.user.toString() !== req.user._id.toString()) {
       res.status(401);
-      throw new Error('Not authorized');
+      throw new Error('Not authorized to delete this project');
     }
 
     // Delete all sub-projects
@@ -126,10 +156,10 @@ const updateMainProjectStatus = async (req, res) => {
       throw new Error('Project not found');
     }
 
-    // Check user ownership
-    if (project.user.toString() !== req.user._id.toString()) {
+    // Check user access: Admin or Owner
+    if (req.user.role !== 'admin' && project.user.toString() !== req.user._id.toString()) {
       res.status(401);
-      throw new Error('Not authorized');
+      throw new Error('Not authorized to update status');
     }
 
     const newStatus = await project.calculateStatus();

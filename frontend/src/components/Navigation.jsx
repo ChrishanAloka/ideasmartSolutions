@@ -14,18 +14,22 @@ function Navigation({ user, onLogout }) {
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="ms-auto align-items-center">
-            <Nav.Link as={Link} to="/dashboard">
-              <i className="bi bi-grid-fill me-2"></i>
-              Dashboard
-            </Nav.Link>
+            {user.role !== 'developer' && (
+              <Nav.Link as={Link} to="/dashboard">
+                <i className="bi bi-grid-fill me-2"></i>
+                Dashboard
+              </Nav.Link>
+            )}
             <Nav.Link as={Link} to="/tasks">
               <i className="bi bi-check2-square me-2"></i>
               Tasks
             </Nav.Link>
-            <Nav.Link as={Link} to="/subscriptions">
-              <i className="bi bi-arrow-repeat me-2"></i>
-              Subscriptions
-            </Nav.Link>
+            {user.role !== 'developer' && (
+              <Nav.Link as={Link} to="/subscriptions">
+                <i className="bi bi-arrow-repeat me-2"></i>
+                Subscriptions
+              </Nav.Link>
+            )}
             <Nav.Item className="ms-3">
               <span className="text-muted">Welcome, <strong>{user.name}</strong></span>
             </Nav.Item>

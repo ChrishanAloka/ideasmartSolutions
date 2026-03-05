@@ -32,14 +32,12 @@ body {
   margin: 0;
   color: #111;
 
-  background: conic-gradient(
-  from var(--angle),
-  #ff8ec7 0%,
-  /* #9f9e9e 25%, */
-  #ffc081 30%,
-  /* #8fc7ff 85%, */
-  #ff8ec7 100%
-);
+  background: conic-gradient(from var(--angle),
+      #ff8ec7 0%,
+      /* #9f9e9e 25%, */
+      #ffc081 30%,
+      /* #8fc7ff 85%, */
+      #ff8ec7 100%);
 
 
   animation: spinColors 120s linear infinite;
@@ -149,7 +147,7 @@ body::before {
 
 .btn-outline-primary {
   color: var(--primary-color);
-  border: 2px solid var(--primary-color);
+  border: 2px solid var(--primary-color) !important;
   background: transparent;
 }
 
@@ -161,7 +159,7 @@ body::before {
 
 .btn-outline-danger {
   color: var(--danger-color);
-  border: 2px solid var(--danger-color);
+  border: 2px solid var(--danger-color) !important;
   background: transparent;
 }
 
@@ -169,6 +167,30 @@ body::before {
   background: var(--danger-color);
   color: white;
   border-color: var(--danger-color);
+}
+
+.btn-outline-info {
+  color: var(--info-color);
+  border: 2px solid var(--info-color) !important;
+  background: transparent;
+}
+
+.btn-outline-info:hover {
+  background: var(--info-color);
+  color: white;
+  border-color: var(--info-color) !important;
+}
+
+.btn-outline-success {
+  color: var(--success-color);
+  border: 2px solid var(--success-color) !important;
+  background: transparent;
+}
+
+.btn-outline-success:hover {
+  background: var(--success-color);
+  color: white;
+  border-color: var(--success-color) !important;
 }
 
 /* Status Badge Styling */
@@ -193,9 +215,12 @@ body::before {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -228,12 +253,14 @@ body::before {
   background: #10b981;
 }
 
-.status-on-hold, .status-cancelled {
+.status-on-hold,
+.status-cancelled {
   background: linear-gradient(135deg, #fee2e2, #fecaca);
   color: #991b1b;
 }
 
-.status-on-hold::before, .status-cancelled::before {
+.status-on-hold::before,
+.status-cancelled::before {
   background: #ef4444;
 }
 
@@ -297,6 +324,7 @@ body::before {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -321,7 +349,8 @@ body::before {
 }
 
 /* Form Control Styling */
-.form-control, .form-select {
+.form-control,
+.form-select {
   border: 2px solid #e5e7eb;
   border-radius: 10px;
   padding: 0.75rem 1rem;
@@ -329,7 +358,8 @@ body::before {
   font-size: 0.95rem;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   outline: none;
@@ -389,12 +419,10 @@ body::before {
   left: 0;
   bottom: 0;
   right: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent);
   animation: shimmer 2s infinite;
 }
 
@@ -402,6 +430,7 @@ body::before {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -485,6 +514,12 @@ body::before {
   color: #065f46;
 }
 
+.alert-info {
+  background: #e0f2fe;
+  border-left-color: #3b82f6;
+  color: #1e40af;
+}
+
 /* Tab Styling */
 .nav-tabs {
   border-bottom: 2px solid #f3f4f6;
@@ -556,6 +591,7 @@ body::before {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -621,7 +657,7 @@ body::before {
   .no-print {
     display: none !important;
   }
-  
+
   .card {
     box-shadow: none !important;
     page-break-inside: avoid;
@@ -635,7 +671,12 @@ body::before {
     page-break-after: avoid;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     page-break-after: avoid;
   }
 
@@ -647,7 +688,8 @@ body::before {
     print-color-adjust: exact !important;
   }
 
-  .badge, .status-badge {
+  .badge,
+  .status-badge {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -687,15 +729,15 @@ body::before {
   .stats-number {
     font-size: 2rem;
   }
-  
+
   .card {
     margin-bottom: 1rem;
   }
-  
+
   .invoice-container {
     padding: 1.5rem;
   }
-  
+
   .btn {
     padding: 0.5rem 1rem;
     font-size: 0.9rem;

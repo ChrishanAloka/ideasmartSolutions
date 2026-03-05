@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Modal, Form, Alert, Badge, Tab, Tabs, Table } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Modal, Form, Alert, Badge, Tab, Tabs, Table, ProgressBar } from 'react-bootstrap';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { projectsAPI, subProjectsAPI, paymentsAPI, invoicesAPI } from '../utils/api';
+import { projectsAPI, subProjectsAPI, paymentsAPI, invoicesAPI, tasksAPI, authAPI } from '../utils/api';
 
 function ProjectDetails({ user }) {
   const { id } = useParams();
@@ -12,6 +12,10 @@ function ProjectDetails({ user }) {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [tasks, setTasks] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
 
   // Modals
   const [showEditModal, setShowEditModal] = useState(false);
@@ -54,23 +58,30 @@ function ProjectDetails({ user }) {
     notes: ''
   });
 
+  const [taskFormData, setTaskFormData] = useState({
+    title: '',
+    description: '',
+    status: 'To Do',
+    priority: 'Medium',
+    progress: 0,
+    assignedTo: '',
+    deadline: '',
+    subProject: '',
+    notes: ''
+  });
+
   useEffect(() => {
     fetchProjectData();
   }, [id]);
 
   const fetchProjectData = async () => {
     try {
-      const [projectRes, subProjectsRes, paymentsRes, invoicesRes] = await Promise.all([
-        projectsAPI.getOne(id),
-        subProjectsAPI.getAll(id),
-        paymentsAPI.getAll(id),
-        invoicesAPI.getAllForProject(id)
-      ]);
+      setLoading(true);
+      setError('');
 
+      // First, get the main project
+      const projectRes = await projectsAPI.getOne(id);
       setProject(projectRes.data);
-      setSubProjects(subProjectsRes.data);
-      setPayments(paymentsRes.data);
-      setInvoices(invoicesRes.data);
 
       setProjectFormData({
         name: projectRes.data.name,
@@ -81,11 +92,46 @@ function ProjectDetails({ user }) {
         status: projectRes.data.status
       });
 
+      // Then fetch other details semi-independently
+      try {
+        const [subProjectsRes, paymentsRes, invoicesRes, tasksRes, usersRes] = await Promise.all([
+          subProjectsAPI.getAll(id),
+          paymentsAPI.getAll(id),
+          invoicesAPI.getAllForProject(id),
+          tasksAPI.getAll({ projectId: id }),
+          authAPI.getUsers()
+        ]);
+
+        setSubProjects(subProjectsRes.data);
+        setPayments(paymentsRes.data);
+        setInvoices(invoicesRes.data);
+        setTasks(tasksRes.data);
+        setUsers(usersRes.data);
+      } catch (secondaryErr) {
+        console.error('Error fetching secondary project data:', secondaryErr);
+        // We don't fail the whole page if secondary data fails, but we might want to alert the user
+        setError('Some project details could not be loaded, but the main project is visible.');
+      }
+
       setLoading(false);
     } catch (err) {
-      setError('Failed to load project details');
+      console.error('Error fetching project:', err);
+      setError(err.response?.data?.message || 'Failed to load project details');
       setLoading(false);
     }
+  };
+
+  const handleTaskProgressChange = (value) => {
+    const progress = parseInt(value);
+    let status = taskFormData.status;
+
+    if (progress === 100) {
+      status = 'Completed';
+    } else if (progress > 0) {
+      status = 'In Progress';
+    }
+
+    setTaskFormData({ ...taskFormData, progress, status });
   };
 
   const handleProjectUpdate = async (e) => {
@@ -208,6 +254,84 @@ function ProjectDetails({ user }) {
     }
   };
 
+  const handleTaskSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    try {
+      const taskData = {
+        ...taskFormData,
+        mainProject: id
+      };
+
+      if (editingTask) {
+        await tasksAPI.update(editingTask._id, taskData);
+      } else {
+        await tasksAPI.create(taskData);
+      }
+
+      setShowTaskModal(false);
+      setEditingTask(null);
+      setTaskFormData({
+        title: '',
+        description: '',
+        status: 'To Do',
+        priority: 'Medium',
+        progress: 0,
+        assignedTo: '',
+        deadline: '',
+        subProject: '',
+        notes: ''
+      });
+      fetchProjectData();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to save task');
+    }
+  };
+
+  const handleTaskDelete = async (taskId) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      try {
+        await tasksAPI.delete(taskId);
+        fetchProjectData();
+      } catch (err) {
+        setError('Failed to delete task');
+      }
+    }
+  };
+
+  const handleAddTaskForSubProject = (subProjectId) => {
+    setEditingTask(null);
+    setTaskFormData({
+      title: '',
+      description: '',
+      status: 'To Do',
+      priority: 'Medium',
+      progress: 0,
+      assignedTo: '',
+      deadline: '',
+      subProject: subProjectId,
+      notes: ''
+    });
+    setShowTaskModal(true);
+  };
+
+  const handleEditTask = (task) => {
+    setEditingTask(task);
+    setTaskFormData({
+      title: task.title,
+      description: task.description || '',
+      status: task.status,
+      priority: task.priority,
+      progress: task.progress,
+      assignedTo: task.assignedTo?._id || task.assignedTo || '',
+      deadline: task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : '',
+      subProject: task.subProject?._id || task.subProject || '',
+      notes: task.notes || ''
+    });
+    setShowTaskModal(true);
+  };
+
   const getStatusClass = (status) => {
     const statusMap = {
       'Planning': 'status-planning',
@@ -284,7 +408,11 @@ function ProjectDetails({ user }) {
   if (!project) {
     return (
       <Container className="py-5 text-center">
-        <Alert variant="danger">Project not found</Alert>
+        {error ? (
+          <Alert variant="danger">{error}</Alert>
+        ) : (
+          <Alert variant="danger">Project not found</Alert>
+        )}
         <Link to="/dashboard">
           <Button variant="primary">Back to Dashboard</Button>
         </Link>
@@ -315,23 +443,25 @@ function ProjectDetails({ user }) {
                 {project.status}
               </Badge>
             </div>
-            <div className="d-flex gap-2">
-              <Button variant="outline-primary" onClick={() => setShowEditModal(true)}>
-                <i className="bi bi-pencil me-2"></i>
-                Edit Project
-              </Button>
-              <Button variant="outline-info" onClick={handleGenerateProposal}>
-                <i className="bi bi-file-earmark-diff me-2"></i>
-                Generate Proposal
-              </Button>
-              <Button variant="success" onClick={handleGenerateInvoice}>
-                <i className="bi bi-file-earmark-text me-2"></i>
-                Generate Invoice
-              </Button>
-              <Button variant="outline-danger" onClick={() => setShowDeleteModal(true)}>
-                <i className="bi bi-trash"></i>
-              </Button>
-            </div>
+            {user.role !== 'developer' && (
+              <div className="d-flex gap-2">
+                <Button variant="outline-primary" onClick={() => setShowEditModal(true)}>
+                  <i className="bi bi-pencil me-2"></i>
+                  Edit Project
+                </Button>
+                <Button variant="outline-info" onClick={handleGenerateProposal}>
+                  <i className="bi bi-file-earmark-diff me-2"></i>
+                  Generate Proposal
+                </Button>
+                <Button variant="success" onClick={handleGenerateInvoice}>
+                  <i className="bi bi-file-earmark-text me-2"></i>
+                  Generate Invoice
+                </Button>
+                <Button variant="outline-danger" onClick={() => setShowDeleteModal(true)}>
+                  <i className="bi bi-trash"></i>
+                </Button>
+              </div>
+            )}
           </div>
         </Col>
       </Row>
@@ -339,32 +469,34 @@ function ProjectDetails({ user }) {
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
       {/* Project Summary Cards */}
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="text-center p-3">
-            <h6 className="text-muted mb-1">Total Amount</h6>
-            <h4 className="mb-0">Rs. {project.totalAmount.toLocaleString()}</h4>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center p-3 bg-success text-white">
-            <h6 className="mb-1" style={{ opacity: 0.9 }}>Paid Amount</h6>
-            <h4 className="mb-0">Rs. {project.paidAmount.toLocaleString()}</h4>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center p-3 bg-warning text-white">
-            <h6 className="mb-1" style={{ opacity: 0.9 }}>Balance</h6>
-            <h4 className="mb-0">Rs. {balance.toLocaleString()}</h4>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center p-3">
-            <h6 className="text-muted mb-1">Sub-Projects</h6>
-            <h4 className="mb-0">{subProjects.length}</h4>
-          </Card>
-        </Col>
-      </Row>
+      {user.role !== 'developer' && (
+        <Row className="mb-4">
+          <Col md={3}>
+            <Card className="text-center p-3">
+              <h6 className="text-muted mb-1">Total Amount</h6>
+              <h4 className="mb-0">Rs. {(project.totalAmount || 0).toLocaleString()}</h4>
+            </Card>
+          </Col>
+          <Col md={3}>
+            <Card className="text-center p-3 bg-success text-white">
+              <h6 className="mb-1" style={{ opacity: 0.9 }}>Paid Amount</h6>
+              <h4 className="mb-0">Rs. {(project.paidAmount || 0).toLocaleString()}</h4>
+            </Card>
+          </Col>
+          <Col md={3}>
+            <Card className="text-center p-3 bg-warning text-white">
+              <h6 className="mb-1" style={{ opacity: 0.9 }}>Balance</h6>
+              <h4 className="mb-0">Rs. {(balance || 0).toLocaleString()}</h4>
+            </Card>
+          </Col>
+          <Col md={3}>
+            <Card className="text-center p-3">
+              <h6 className="text-muted mb-1">Sub-Projects</h6>
+              <h4 className="mb-0">{subProjects.length}</h4>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {/* Payment Progress */}
       <Card className="mb-4">
@@ -382,37 +514,39 @@ function ProjectDetails({ user }) {
         </Card.Body>
       </Card>
 
-      {/* Tabs for Sub-Projects and Payments */}
+      {/* Tabs for Sub-Projects, Tasks and Payments */}
       <Tabs defaultActiveKey="subprojects" className="mb-3">
         <Tab eventKey="subprojects" title={`Sub-Projects (${subProjects.length})`}>
           <Card>
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5 className="mb-0">Sub-Projects</h5>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    setEditingSubProject(null);
-                    setSubProjectFormData({
-                      name: '',
-                      description: '',
-                      price: 0,
-                      deadline: '',
-                      status: 'Not Started',
-                      notes: '',
-                      isSubscription: false,
-                      subscriptionType: 'None',
-                      subscriptionStartDate: '',
-                      subscriptionEndDate: '',
-                      features: ''
-                    });
-                    setShowSubProjectModal(true);
-                  }}
-                >
-                  <i className="bi bi-plus-circle me-2"></i>
-                  Add Sub-Project
-                </Button>
+                {user.role !== 'developer' && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      setEditingSubProject(null);
+                      setSubProjectFormData({
+                        name: '',
+                        description: '',
+                        price: 0,
+                        deadline: '',
+                        status: 'Not Started',
+                        notes: '',
+                        isSubscription: false,
+                        subscriptionType: 'None',
+                        subscriptionStartDate: '',
+                        subscriptionEndDate: '',
+                        features: ''
+                      });
+                      setShowSubProjectModal(true);
+                    }}
+                  >
+                    <i className="bi bi-plus-circle me-2"></i>
+                    Add Sub-Project
+                  </Button>
+                )}
               </div>
 
               {subProjects.length === 0 ? (
@@ -426,10 +560,10 @@ function ProjectDetails({ user }) {
                     <thead>
                       <tr>
                         <th>Name</th>
-                        <th>Price</th>
+                        {user.role !== 'developer' && <th>Price</th>}
                         <th>Deadline</th>
                         <th>Status</th>
-                        <th>Actions</th>
+                        {user.role !== 'developer' && <th>Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -446,7 +580,7 @@ function ProjectDetails({ user }) {
                               </ul>
                             )}
                           </td>
-                          <td>Rs. {subProject.price.toLocaleString()}</td>
+                          {user.role !== 'developer' && <td>Rs. {subProject.price.toLocaleString()}</td>}
                           <td>
                             {formatDate(subProject.deadline)}
                             {new Date(subProject.deadline) < new Date() && subProject.status !== 'Completed' && (
@@ -457,23 +591,215 @@ function ProjectDetails({ user }) {
                             <Badge className={`status-badge ${getStatusClass(subProject.status)}`}>
                               {subProject.status}
                             </Badge>
+
+                            {/* Tasks summary for this sub-project */}
+                            {tasks.filter(t => (t.subProject?._id || t.subProject) === subProject._id).length > 0 && (
+                              <div className="mt-2 small">
+                                <span className="text-muted">
+                                  Tasks: {tasks.filter(t => (t.subProject?._id || t.subProject) === subProject._id && t.status === 'Completed').length}/{tasks.filter(t => (t.subProject?._id || t.subProject) === subProject._id).length}
+                                </span>
+                                <div className="progress mt-1" style={{ height: '4px', width: '60px' }}>
+                                  <div
+                                    className="progress-bar bg-success"
+                                    style={{
+                                      width: `${(tasks.filter(t => (t.subProject?._id || t.subProject) === subProject._id && t.status === 'Completed').length / tasks.filter(t => (t.subProject?._id || t.subProject) === subProject._id).length) * 100}%`
+                                    }}
+                                  ></div>
+                                </div>
+                              </div>
+                            )}
+                          </td>
+                          {user.role !== 'developer' && (
+                            <td>
+                              <div className="d-flex gap-1">
+                                <Button
+                                  variant="outline-info"
+                                  size="sm"
+                                  title="Add Task"
+                                  onClick={() => handleAddTaskForSubProject(subProject._id)}
+                                >
+                                  <i className="bi bi-check2-square"></i>
+                                </Button>
+                                <Button
+                                  variant="outline-primary"
+                                  size="sm"
+                                  onClick={() => handleEditSubProject(subProject)}
+                                >
+                                  <i className="bi bi-pencil"></i>
+                                </Button>
+                                <Button
+                                  variant="outline-danger"
+                                  size="sm"
+                                  onClick={() => handleSubProjectDelete(subProject._id)}
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </Button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                      {subProjects.some(sp => tasks.some(t => (t.subProject?._id || t.subProject) === sp._id)) && (
+                        <tr>
+                          <td colSpan="5" className="p-0">
+                            <div className="p-3 bg-light">
+                              <h6 className="mb-3">Sub-Project Tasks</h6>
+                              <div className="d-flex flex-wrap gap-3">
+                                {subProjects.map(sp => (
+                                  tasks.filter(t => (t.subProject?._id || t.subProject) === sp._id).length > 0 && (
+                                    <Card key={sp._id} className="shadow-sm" style={{ minWidth: '250px' }}>
+                                      <Card.Header className="py-2 bg-white d-flex justify-content-between align-items-center">
+                                        <span className="fw-bold small">{sp.name}</span>
+                                        <Badge bg="info">{tasks.filter(t => (t.subProject?._id || t.subProject) === sp._id).length}</Badge>
+                                      </Card.Header>
+                                      <Card.Body className="p-2">
+                                        {tasks.filter(t => (t.subProject?._id || t.subProject) === sp._id).map(task => (
+                                          <div key={task._id} className="d-flex justify-content-between align-items-center mb-1 p-1 rounded hover-bg-light" style={{ fontSize: '0.85rem' }}>
+                                            <div className="d-flex align-items-center gap-2">
+                                              <i className={`bi bi-circle-fill xm-icon text-${task.status === 'Completed' ? 'success' : task.status === 'In Progress' ? 'primary' : 'secondary'}`}></i>
+                                              <span>{task.title}</span>
+                                            </div>
+                                            <i className="bi bi-pencil text-muted cursor-pointer" onClick={() => handleEditTask(task)}></i>
+                                          </div>
+                                        ))}
+                                      </Card.Body>
+                                    </Card>
+                                  )
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Tab>
+
+        <Tab eventKey="tasks" title={`Tasks (${tasks.length})`}>
+          <Card>
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0">Project Tasks</h5>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setEditingTask(null);
+                    setTaskFormData({
+                      title: '',
+                      description: '',
+                      status: 'To Do',
+                      priority: 'Medium',
+                      progress: 0,
+                      assignedTo: '',
+                      deadline: new Date().toISOString().split('T')[0],
+                      subProject: '',
+                      notes: ''
+                    });
+                    setShowTaskModal(true);
+                  }}
+                >
+                  <i className="bi bi-plus-circle me-2"></i>
+                  Add General Task
+                </Button>
+              </div>
+
+              {tasks.length === 0 ? (
+                <div className="text-center py-4">
+                  <i className="bi bi-check2-square" style={{ fontSize: '3rem', color: '#ccc' }}></i>
+                  <p className="text-muted mt-2">No tasks assigned to this project yet</p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <Table hover>
+                    <thead>
+                      <tr>
+                        <th>Task</th>
+                        <th>Assigned To</th>
+                        <th>Priority</th>
+                        <th>Progress</th>
+                        <th>Status</th>
+                        <th>Deadline</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tasks.map((task) => (
+                        <tr key={task._id}>
+                          <td>
+                            <strong>{task.title}</strong>
+                            <div className="text-muted small">
+                              {task.subProject ? (
+                                <span><i className="bi bi-layers me-1"></i> {typeof task.subProject === 'object' ? task.subProject.name : 'Sub-project'}</span>
+                              ) : (
+                                <span><i className="bi bi-folder me-1"></i> General Project Task</span>
+                              )}
+                            </div>
+                          </td>
+                          <td>{task.assignedTo?.name || 'Unassigned'}</td>
+                          <td>
+                            <Badge bg={task.priority === 'Urgent' ? 'danger' : task.priority === 'High' ? 'warning' : 'info'}>
+                              {task.priority}
+                            </Badge>
+                          </td>
+                          <td style={{ width: '150px' }}>
+                            <div className="d-flex align-items-center gap-2">
+                              <ProgressBar
+                                now={task.progress}
+                                style={{ height: '6px', flex: 1 }}
+                                variant={task.progress === 100 ? 'success' : 'primary'}
+                              />
+                              <small>{task.progress}%</small>
+                            </div>
                           </td>
                           <td>
-                            <Button
-                              variant="outline-primary"
-                              size="sm"
-                              className="me-2"
-                              onClick={() => handleEditSubProject(subProject)}
-                            >
-                              <i className="bi bi-pencil"></i>
-                            </Button>
-                            <Button
-                              variant="outline-danger"
-                              size="sm"
-                              onClick={() => handleSubProjectDelete(subProject._id)}
-                            >
-                              <i className="bi bi-trash"></i>
-                            </Button>
+                            <Badge bg={task.status === 'Completed' ? 'success' : task.status === 'In Progress' ? 'primary' : 'secondary'}>
+                              {task.status}
+                            </Badge>
+                          </td>
+                          <td>
+                            {formatDate(task.deadline)}
+                          </td>
+                          <td>
+                            <div className="d-flex gap-1">
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingTask(task);
+                                  setTaskFormData({
+                                    title: task.title,
+                                    description: task.description || '',
+                                    status: task.status,
+                                    priority: task.priority,
+                                    progress: task.progress,
+                                    assignedTo: task.assignedTo?._id || task.assignedTo,
+                                    deadline: task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : '',
+                                    subProject: task.subProject?._id || task.subProject || '',
+                                    notes: task.notes || ''
+                                  });
+                                  setShowTaskModal(true);
+                                }}
+                              >
+                                <i className="bi bi-pencil"></i>
+                              </Button>
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={async () => {
+                                  if (window.confirm('Delete this task?')) {
+                                    await tasksAPI.delete(task._id);
+                                    fetchProjectData();
+                                  }
+                                }}
+                              >
+                                <i className="bi bi-trash"></i>
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -490,10 +816,12 @@ function ProjectDetails({ user }) {
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5 className="mb-0">Payment History</h5>
-                <Button variant="success" size="sm" onClick={() => setShowPaymentModal(true)}>
-                  <i className="bi bi-plus-circle me-2"></i>
-                  Add Payment
-                </Button>
+                {user.role !== 'developer' && (
+                  <Button variant="success" size="sm" onClick={() => setShowPaymentModal(true)}>
+                    <i className="bi bi-plus-circle me-2"></i>
+                    Add Payment
+                  </Button>
+                )}
               </div>
 
               {payments.length === 0 ? (
@@ -507,38 +835,42 @@ function ProjectDetails({ user }) {
                     <thead>
                       <tr>
                         <th>Date</th>
-                        <th>Amount</th>
+                        {user.role !== 'developer' && <th>Amount</th>}
                         <th>Method</th>
                         <th>Reference</th>
-                        <th>Actions</th>
+                        {user.role !== 'developer' && <th>Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
                       {payments.map((payment) => (
                         <tr key={payment._id}>
                           <td>{formatDate(payment.paymentDate)}</td>
-                          <td className="text-success fw-bold">Rs. {payment.amount.toLocaleString()}</td>
+                          {user.role !== 'developer' && <td className="text-success fw-bold">Rs. {payment.amount.toLocaleString()}</td>}
                           <td>{payment.paymentMethod}</td>
                           <td>{payment.reference || '-'}</td>
-                          <td>
-                            <Button
-                              variant="outline-danger"
-                              size="sm"
-                              onClick={() => handlePaymentDelete(payment._id)}
-                            >
-                              <i className="bi bi-trash"></i>
-                            </Button>
-                          </td>
+                          {user.role !== 'developer' && (
+                            <td>
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => handlePaymentDelete(payment._id)}
+                              >
+                                <i className="bi bi-trash"></i>
+                              </Button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot>
-                      <tr>
-                        <th>Total Paid:</th>
-                        <th className="text-success">Rs. {project.paidAmount.toLocaleString()}</th>
-                        <th colSpan="3"></th>
-                      </tr>
-                    </tfoot>
+                    {user.role !== 'developer' && (
+                      <tfoot>
+                        <tr>
+                          <th>Total Paid:</th>
+                          <th className="text-success">Rs. {project.paidAmount.toLocaleString()}</th>
+                          <th colSpan="3"></th>
+                        </tr>
+                      </tfoot>
+                    )}
                   </Table>
                 </div>
               )}
@@ -551,20 +883,22 @@ function ProjectDetails({ user }) {
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5 className="mb-0">Generated Documents</h5>
-                <div className="d-flex gap-2">
-                  <Button variant="outline-info" size="sm" onClick={handleGenerateProposal}>
-                    <i className="bi bi-file-earmark-diff me-2"></i>
-                    Generate Proposal
-                  </Button>
-                  <Button variant="outline-primary" size="sm" onClick={handleGenerateQuotation}>
-                    <i className="bi bi-file-text me-2"></i>
-                    Generate Quotation
-                  </Button>
-                  <Button variant="outline-success" size="sm" onClick={handleGenerateInvoice}>
-                    <i className="bi bi-file-earmark-text me-2"></i>
-                    Generate Invoice
-                  </Button>
-                </div>
+                {user.role !== 'developer' && (
+                  <div className="d-flex gap-2">
+                    <Button variant="outline-info" size="sm" onClick={handleGenerateProposal}>
+                      <i className="bi bi-file-earmark-diff me-2"></i>
+                      Generate Proposal
+                    </Button>
+                    <Button variant="outline-primary" size="sm" onClick={handleGenerateQuotation}>
+                      <i className="bi bi-file-text me-2"></i>
+                      Generate Quotation
+                    </Button>
+                    <Button variant="outline-success" size="sm" onClick={handleGenerateInvoice}>
+                      <i className="bi bi-file-earmark-text me-2"></i>
+                      Generate Invoice
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {invoices.length === 0 ? (
@@ -595,7 +929,7 @@ function ProjectDetails({ user }) {
                             </Badge>
                           </td>
                           <td>{formatDate(doc.createdAt)}</td>
-                          <td>Rs. {doc.totalAmount.toLocaleString()}</td>
+                          {user.role !== 'developer' && <td>Rs. {doc.totalAmount.toLocaleString()}</td>}
                           <td>
                             <Badge bg={doc.status === 'Paid' ? 'success' : 'secondary'}>{doc.status}</Badge>
                           </td>
@@ -606,13 +940,15 @@ function ProjectDetails({ user }) {
                                   <i className="bi bi-eye"></i>
                                 </Button>
                               </Link>
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                onClick={() => handleDeleteInvoice(doc._id)}
-                              >
-                                <i className="bi bi-trash"></i>
-                              </Button>
+                              {user.role !== 'developer' && (
+                                <Button
+                                  variant="outline-danger"
+                                  size="sm"
+                                  onClick={() => handleDeleteInvoice(doc._id)}
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1044,6 +1380,124 @@ function ProjectDetails({ user }) {
               </Button>
               <Button variant="success" type="submit">
                 Add Payment
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Task Modal */}
+      <Modal show={showTaskModal} onHide={() => setShowTaskModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>{editingTask ? 'Edit Task' : 'Add Task to Sub-Project'}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleTaskSubmit}>
+            <Form.Group className="mb-3">
+              <Form.Label>Task Title *</Form.Label>
+              <Form.Control
+                type="text"
+                value={taskFormData.title}
+                onChange={(e) => setTaskFormData({ ...taskFormData, title: e.target.value })}
+                placeholder="Task description"
+                required
+              />
+            </Form.Group>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Assigned To *</Form.Label>
+                  <Form.Select
+                    value={taskFormData.assignedTo}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, assignedTo: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Team Member</option>
+                    {users.map(u => (
+                      <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Deadline *</Form.Label>
+                  <Form.Control
+                    type="date"
+                    value={taskFormData.deadline}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, deadline: e.target.value })}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Priority</Form.Label>
+                  <Form.Select
+                    value={taskFormData.priority}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, priority: e.target.value })}
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Status</Form.Label>
+                  <Form.Select
+                    value={taskFormData.status}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, status: e.target.value })}
+                  >
+                    <option value="To Do">To Do</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Review">Review</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Progress: {taskFormData.progress}%</Form.Label>
+                  <Form.Range
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={taskFormData.progress}
+                    onChange={(e) => handleTaskProgressChange(e.target.value)}
+                  />
+                  <ProgressBar
+                    now={taskFormData.progress}
+                    variant={taskFormData.progress === 100 ? 'success' : 'primary'}
+                    style={{ height: '5px' }}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                value={taskFormData.description}
+                onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
+              />
+            </Form.Group>
+
+            <div className="d-flex justify-content-end gap-2">
+              <Button variant="secondary" onClick={() => setShowTaskModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit">
+                {editingTask ? 'Update Task' : 'Add Task'}
               </Button>
             </div>
           </Form>

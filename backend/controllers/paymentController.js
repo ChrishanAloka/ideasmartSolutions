@@ -8,20 +8,30 @@ const getPayments = async (req, res) => {
   try {
     // Verify main project exists and user has access
     const mainProject = await MainProject.findById(req.params.projectId);
-    
+
     if (!mainProject) {
       res.status(404);
       throw new Error('Main project not found');
     }
 
-    if (mainProject.user.toString() !== req.user._id.toString()) {
-      res.status(401);
-      throw new Error('Not authorized');
+    // Check user access: Admin, Owner, or Developer with task
+    if (req.user.role !== 'admin' && mainProject.user.toString() !== req.user._id.toString()) {
+      if (req.user.role === 'developer') {
+        const Task = require('../models/Task');
+        const hasTask = await Task.findOne({ mainProject: mainProject._id, assignedTo: req.user._id });
+        if (!hasTask) {
+          res.status(401);
+          throw new Error('Not authorized to view payments');
+        }
+      } else {
+        res.status(401);
+        throw new Error('Not authorized');
+      }
     }
 
     const payments = await Payment.find({ mainProject: req.params.projectId })
       .sort({ paymentDate: -1 });
-    
+
     res.json(payments);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -41,10 +51,20 @@ const getPayment = async (req, res) => {
     }
 
     // Check user ownership through main project
+    // Check user access: Admin, Owner, or Developer with task
     const mainProject = await MainProject.findById(payment.mainProject);
-    if (mainProject.user.toString() !== req.user._id.toString()) {
-      res.status(401);
-      throw new Error('Not authorized');
+    if (req.user.role !== 'admin' && mainProject.user.toString() !== req.user._id.toString()) {
+      if (req.user.role === 'developer') {
+        const Task = require('../models/Task');
+        const hasTask = await Task.findOne({ mainProject: mainProject._id, assignedTo: req.user._id });
+        if (!hasTask) {
+          res.status(401);
+          throw new Error('Not authorized to view payment');
+        }
+      } else {
+        res.status(401);
+        throw new Error('Not authorized');
+      }
     }
 
     res.json(payment);
@@ -60,15 +80,16 @@ const createPayment = async (req, res) => {
   try {
     // Verify main project exists and user has access
     const mainProject = await MainProject.findById(req.params.projectId);
-    
+
     if (!mainProject) {
       res.status(404);
       throw new Error('Main project not found');
     }
 
-    if (mainProject.user.toString() !== req.user._id.toString()) {
+    // Restricted to Admin or Owner
+    if (req.user.role !== 'admin' && mainProject.user.toString() !== req.user._id.toString()) {
       res.status(401);
-      throw new Error('Not authorized');
+      throw new Error('Not authorized to create payments');
     }
 
     const payment = await Payment.create({
@@ -101,10 +122,11 @@ const updatePayment = async (req, res) => {
     }
 
     // Check user ownership through main project
+    // Restricted to Admin or Owner
     const mainProject = await MainProject.findById(payment.mainProject);
-    if (mainProject.user.toString() !== req.user._id.toString()) {
+    if (req.user.role !== 'admin' && mainProject.user.toString() !== req.user._id.toString()) {
       res.status(401);
-      throw new Error('Not authorized');
+      throw new Error('Not authorized to update payment');
     }
 
     const updatedPayment = await Payment.findByIdAndUpdate(
@@ -138,10 +160,11 @@ const deletePayment = async (req, res) => {
     }
 
     // Check user ownership through main project
+    // Restricted to Admin or Owner
     const mainProject = await MainProject.findById(payment.mainProject);
-    if (mainProject.user.toString() !== req.user._id.toString()) {
+    if (req.user.role !== 'admin' && mainProject.user.toString() !== req.user._id.toString()) {
       res.status(401);
-      throw new Error('Not authorized');
+      throw new Error('Not authorized to delete payment');
     }
 
     await payment.deleteOne();

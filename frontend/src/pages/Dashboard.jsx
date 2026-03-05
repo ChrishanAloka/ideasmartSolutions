@@ -126,15 +126,15 @@ function Dashboard({ user }) {
       <Row className="mb-4 align-items-center">
         <Col>
           <div style={{ animation: 'fadeIn 0.6s ease-out' }}>
-            <h2 style={{ 
-              fontWeight: '800', 
+            <h2 style={{
+              fontWeight: '800',
               background: 'linear-gradient(135deg, #667eea, #764ba2)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
               marginBottom: '0.5rem'
             }}>
-              <i className="bi bi-grid-fill me-3" style={{ 
+              <i className="bi bi-grid-fill me-3" style={{
                 background: 'linear-gradient(135deg, #667eea, #764ba2)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
@@ -147,30 +147,32 @@ function Dashboard({ user }) {
           </div>
         </Col>
         <Col xs="auto">
-          <Button 
-            variant="primary" 
-            onClick={() => setShowModal(true)}
-            style={{
-              borderRadius: '12px',
-              padding: '0.75rem 1.5rem',
-              fontWeight: '600',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-              background: 'white',
-              color: '#667eea',
-              border: 'none'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
-              e.target.style.color = 'white';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'white';
-              e.target.style.color = '#667eea';
-            }}
-          >
-            <i className="bi bi-plus-circle me-2"></i>
-            New Project
-          </Button>
+          {user.role !== 'developer' && (
+            <Button
+              variant="primary"
+              onClick={() => setShowModal(true)}
+              style={{
+                borderRadius: '12px',
+                padding: '0.75rem 1.5rem',
+                fontWeight: '600',
+                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                background: 'white',
+                color: '#667eea',
+                border: 'none'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+                e.target.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'white';
+                e.target.style.color = '#667eea';
+              }}
+            >
+              <i className="bi bi-plus-circle me-2"></i>
+              New Project
+            </Button>
+          )}
         </Col>
       </Row>
 
@@ -246,8 +248,8 @@ function Dashboard({ user }) {
         <Row className="mb-3">
           <Col>
             <div className="d-flex align-items-center gap-2">
-              <Badge bg="primary" style={{ 
-                padding: '0.5rem 1rem', 
+              <Badge bg="primary" style={{
+                padding: '0.5rem 1rem',
                 borderRadius: '20px',
                 fontSize: '0.9rem'
               }}>
@@ -292,12 +294,14 @@ function Dashboard({ user }) {
             <p className="stats-label">Completed</p>
           </Card>
         </Col>
-        <Col md={3}>
-          <Card className="stats-card" style={{ background: 'linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%)' }}>
-            <h3 className="stats-number">Rs. {stats.totalPaid.toLocaleString()}</h3>
-            <p className="stats-label">Total Revenue</p>
-          </Card>
-        </Col>
+        {user.role !== 'developer' && (
+          <Col md={3}>
+            <Card className="stats-card" style={{ background: 'linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%)' }}>
+              <h3 className="stats-number">Rs. {stats.totalPaid.toLocaleString()}</h3>
+              <p className="stats-label">Total Revenue</p>
+            </Card>
+          </Col>
+        )}
       </Row>
 
       {/* Projects List */}
@@ -309,8 +313,8 @@ function Dashboard({ user }) {
                 <i className="bi bi-search" style={{ fontSize: '3rem', color: '#ccc' }}></i>
                 <h4 className="mt-3">No projects found</h4>
                 <p className="text-muted">Try adjusting your search or filter criteria</p>
-                <Button 
-                  variant="outline-primary" 
+                <Button
+                  variant="outline-primary"
                   onClick={() => {
                     setSearchTerm('');
                     setStatusFilter('All');
@@ -348,7 +352,7 @@ function Dashboard({ user }) {
                         {project.status}
                       </Badge>
                     </div>
-                    
+
                     <div className="mb-3">
                       <p className="mb-1">
                         <i className="bi bi-person-fill text-muted me-2"></i>
@@ -362,32 +366,36 @@ function Dashboard({ user }) {
                       )}
                     </div>
 
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <small className="text-muted">Total Amount</small>
-                        <h6 className="mb-0">Rs. {project.totalAmount?.toLocaleString() || 0}</h6>
-                      </div>
-                      <div className="text-end">
-                        <small className="text-muted">Paid</small>
-                        <h6 className="mb-0 text-success">Rs. {project.paidAmount?.toLocaleString() || 0}</h6>
-                      </div>
-                    </div>
+                    {user.role !== 'developer' && (
+                      <>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <small className="text-muted">Total Amount</small>
+                            <h6 className="mb-0">Rs. {project.totalAmount?.toLocaleString() || 0}</h6>
+                          </div>
+                          <div className="text-end">
+                            <small className="text-muted">Paid</small>
+                            <h6 className="mb-0 text-success">Rs. {project.paidAmount?.toLocaleString() || 0}</h6>
+                          </div>
+                        </div>
 
-                    <div className="mt-3">
-                      <div className="progress" style={{ height: '6px' }}>
-                        <div 
-                          className="progress-bar bg-success" 
-                          role="progressbar" 
-                          style={{ width: `${project.totalAmount > 0 ? (project.paidAmount / project.totalAmount) * 100 : 0}%` }}
-                        ></div>
-                      </div>
-                      <small className="text-muted">
-                        {project.totalAmount > 0 
-                          ? `${Math.round((project.paidAmount / project.totalAmount) * 100)}% paid`
-                          : 'No amount set'
-                        }
-                      </small>
-                    </div>
+                        <div className="mt-3">
+                          <div className="progress" style={{ height: '6px' }}>
+                            <div
+                              className="progress-bar bg-success"
+                              role="progressbar"
+                              style={{ width: `${project.totalAmount > 0 ? (project.paidAmount / project.totalAmount) * 100 : 0}%` }}
+                            ></div>
+                          </div>
+                          <small className="text-muted">
+                            {project.totalAmount > 0
+                              ? `${Math.round((project.paidAmount / project.totalAmount) * 100)}% paid`
+                              : 'No amount set'
+                            }
+                          </small>
+                        </div>
+                      </>
+                    )}
 
                     {project.subProjects && project.subProjects.length > 0 && (
                       <div className="mt-3">
@@ -412,7 +420,7 @@ function Dashboard({ user }) {
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          
+
           <Form onSubmit={handleSubmit}>
             <Row>
               <Col md={6}>

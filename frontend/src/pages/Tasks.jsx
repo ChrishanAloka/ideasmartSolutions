@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Modal, Form, Alert, Badge, Table, ProgressBar } from 'react-bootstrap';
-import { tasksAPI, projectsAPI } from '../utils/api';
+import { tasksAPI, projectsAPI, authAPI } from '../utils/api';
 
 function Tasks({ user }) {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Filters
   const [statusFilter, setStatusFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [projectFilter, setProjectFilter] = useState('All');
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -26,9 +28,13 @@ function Tasks({ user }) {
     assignedTo: '',
     deadline: '',
     mainProject: '',
+    subProject: '',
     tags: '',
     notes: ''
   });
+
+  const [subProjects, setSubProjects] = useState([]);
+  const [loadingSubProjects, setLoadingSubProjects] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -36,19 +42,42 @@ function Tasks({ user }) {
 
   useEffect(() => {
     filterTasks();
-  }, [tasks, statusFilter, priorityFilter, projectFilter]);
+  }, [tasks, statusFilter, priorityFilter, projectFilter, showCompleted]);
+
+  useEffect(() => {
+    if (formData.mainProject) {
+      fetchSubProjects(formData.mainProject);
+    } else {
+      setSubProjects([]);
+      setFormData(prev => ({ ...prev, subProject: '' }));
+    }
+  }, [formData.mainProject]);
+
+  const fetchSubProjects = async (projectId) => {
+    try {
+      setLoadingSubProjects(true);
+      const res = await projectsAPI.getSubProjects(projectId);
+      setSubProjects(res.data);
+      setLoadingSubProjects(false);
+    } catch (err) {
+      console.error('Failed to fetch sub-projects', err);
+      setLoadingSubProjects(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
-      const [tasksRes, projectsRes, statsRes] = await Promise.all([
+      const [tasksRes, projectsRes, statsRes, usersRes] = await Promise.all([
         tasksAPI.getAll(),
         projectsAPI.getAll(),
-        tasksAPI.getStats()
+        tasksAPI.getStats(),
+        authAPI.getUsers()
       ]);
-      
+
       setTasks(tasksRes.data);
       setProjects(projectsRes.data);
       setStats(statsRes.data);
+      setUsers(usersRes.data);
       setLoading(false);
     } catch (err) {
       setError('Failed to load tasks');
@@ -71,11 +100,28 @@ function Tasks({ user }) {
       if (projectFilter === 'None') {
         filtered = filtered.filter(task => !task.mainProject);
       } else {
-        filtered = filtered.filter(task => task.mainProject?._id === projectFilter);
+        filtered = filtered.filter(task => (task.mainProject?._id || task.mainProject) === projectFilter);
       }
     }
 
+    if (!showCompleted) {
+      filtered = filtered.filter(task => task.status !== 'Completed');
+    }
+
     setFilteredTasks(filtered);
+  };
+
+  const handleProgressChange = (value) => {
+    const progress = parseInt(value);
+    let status = formData.status;
+
+    if (progress === 100) {
+      status = 'Completed';
+    } else if (progress > 0) {
+      status = 'In Progress';
+    }
+
+    setFormData({ ...formData, progress, status });
   };
 
   const handleSubmit = async (e) => {
@@ -86,7 +132,8 @@ function Tasks({ user }) {
       const taskData = {
         ...formData,
         tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : [],
-        mainProject: formData.mainProject || null
+        mainProject: formData.mainProject || null,
+        subProject: formData.subProject || null
       };
 
       if (editingTask) {
@@ -111,9 +158,10 @@ function Tasks({ user }) {
       status: task.status,
       priority: task.priority,
       progress: task.progress,
-      assignedTo: task.assignedTo,
-      deadline: new Date(task.deadline).toISOString().split('T')[0],
+      assignedTo: task.assignedTo?._id || task.assignedTo || '',
+      deadline: task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : '',
       mainProject: task.mainProject?._id || '',
+      subProject: task.subProject?._id || task.subProject || '',
       tags: task.tags?.join(', ') || '',
       notes: task.notes || ''
     });
@@ -142,6 +190,7 @@ function Tasks({ user }) {
       assignedTo: '',
       deadline: '',
       mainProject: '',
+      subProject: '',
       tags: '',
       notes: ''
     });
@@ -196,15 +245,15 @@ function Tasks({ user }) {
       <Row className="mb-4 align-items-center">
         <Col>
           <div style={{ animation: 'fadeIn 0.6s ease-out' }}>
-            <h2 style={{ 
-              fontWeight: '800', 
+            <h2 style={{
+              fontWeight: '800',
               background: 'linear-gradient(135deg, #667eea, #764ba2)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
               marginBottom: '0.5rem'
             }}>
-              <i className="bi bi-check2-square me-3" style={{ 
+              <i className="bi bi-check2-square me-3" style={{
                 background: 'linear-gradient(135deg, #667eea, #764ba2)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
@@ -217,8 +266,8 @@ function Tasks({ user }) {
           </div>
         </Col>
         <Col xs="auto">
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             onClick={() => {
               resetForm();
               setShowModal(true);
@@ -283,7 +332,7 @@ function Tasks({ user }) {
 
       {/* Filters */}
       <Row className="mb-4">
-        <Col md={4}>
+        <Col md={3}>
           <Form.Select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -303,7 +352,7 @@ function Tasks({ user }) {
             <option value="Cancelled">❌ Cancelled</option>
           </Form.Select>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Form.Select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
@@ -315,14 +364,14 @@ function Tasks({ user }) {
               background: 'white'
             }}
           >
-            <option value="All">All Priorities</option>
+            <option value="All">All Priority</option>
             <option value="Low">🟢 Low</option>
             <option value="Medium">🟡 Medium</option>
             <option value="High">🟠 High</option>
             <option value="Urgent">🔴 Urgent</option>
           </Form.Select>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Form.Select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
@@ -335,39 +384,49 @@ function Tasks({ user }) {
             }}
           >
             <option value="All">All Projects</option>
-            <option value="None">📋 General Tasks (No Project)</option>
+            <option value="None">📋 General Tasks</option>
             {projects.map(project => (
-              <option key={project._id} value={project._id}>
-                🎯 {project.name}
-              </option>
+              <option key={project._id} value={project._id}>{project.name}</option>
             ))}
           </Form.Select>
+        </Col>
+        <Col md={3} className="d-flex align-items-center">
+          <Form.Check
+            type="switch"
+            id="show-completed-switch"
+            label="Show Completed"
+            checked={showCompleted}
+            onChange={(e) => setShowCompleted(e.target.checked)}
+            className="fw-bold text-white shadow-sm"
+          />
         </Col>
       </Row>
 
       {/* Results Info */}
-      {(statusFilter !== 'All' || priorityFilter !== 'All' || projectFilter !== 'All') && (
-        <Row className="mb-3">
-          <Col>
-            <Badge bg="primary" style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem' }}>
-              {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} found
-            </Badge>
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => {
-                setStatusFilter('All');
-                setPriorityFilter('All');
-                setProjectFilter('All');
-              }}
-              style={{ color: '#667eea', textDecoration: 'none', fontWeight: '600' }}
-            >
-              <i className="bi bi-arrow-counterclockwise me-1"></i>
-              Clear filters
-            </Button>
-          </Col>
-        </Row>
-      )}
+      {
+        (statusFilter !== 'All' || priorityFilter !== 'All' || projectFilter !== 'All') && (
+          <Row className="mb-3">
+            <Col>
+              <Badge bg="primary" style={{ padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem' }}>
+                {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} found
+              </Badge>
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter('All');
+                  setPriorityFilter('All');
+                  setProjectFilter('All');
+                }}
+                style={{ color: '#667eea', textDecoration: 'none', fontWeight: '600' }}
+              >
+                <i className="bi bi-arrow-counterclockwise me-1"></i>
+                Clear filters
+              </Button>
+            </Col>
+          </Row>
+        )
+      }
 
       {/* Tasks Table */}
       <Card>
@@ -410,6 +469,13 @@ function Tasks({ user }) {
                             <div className="text-muted small">
                               <i className="bi bi-folder me-1"></i>
                               {task.mainProject.name}
+                              {task.subProject && (
+                                <>
+                                  <i className="bi bi-chevron-right mx-1"></i>
+                                  <i className="bi bi-layers me-1"></i>
+                                  {typeof task.subProject === 'object' ? task.subProject.name : 'Sub-project'}
+                                </>
+                              )}
                             </div>
                           )}
                           {task.description && (
@@ -419,7 +485,7 @@ function Tasks({ user }) {
                       </td>
                       <td>
                         <i className="bi bi-person-fill me-1" style={{ color: '#667eea' }}></i>
-                        {task.assignedTo}
+                        {task.assignedTo?.name || 'Unassigned'}
                       </td>
                       <td>
                         <Badge bg={getPriorityColor(task.priority)}>
@@ -433,8 +499,8 @@ function Tasks({ user }) {
                       </td>
                       <td>
                         <div>
-                          <ProgressBar 
-                            now={task.progress} 
+                          <ProgressBar
+                            now={task.progress}
                             label={`${task.progress}%`}
                             variant={task.progress === 100 ? 'success' : 'primary'}
                             style={{ height: '20px' }}
@@ -509,13 +575,16 @@ function Tasks({ user }) {
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Assigned To *</Form.Label>
-                  <Form.Control
-                    type="text"
+                  <Form.Select
                     value={formData.assignedTo}
                     onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                    placeholder="e.g., John Doe or Design Team"
                     required
-                  />
+                  >
+                    <option value="">Select Team Member</option>
+                    {users.map(u => (
+                      <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
+                    ))}
+                  </Form.Select>
                 </Form.Group>
               </Col>
               <Col md={6}>
@@ -563,13 +632,18 @@ function Tasks({ user }) {
               </Col>
               <Col md={4}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Progress (%)</Form.Label>
-                  <Form.Control
-                    type="number"
+                  <Form.Label>Progress: {formData.progress}%</Form.Label>
+                  <Form.Range
                     min="0"
                     max="100"
+                    step="5"
                     value={formData.progress}
-                    onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => handleProgressChange(e.target.value)}
+                  />
+                  <ProgressBar
+                    now={formData.progress}
+                    variant={formData.progress === 100 ? 'success' : 'primary'}
+                    style={{ height: '5px' }}
                   />
                 </Form.Group>
               </Col>
@@ -587,6 +661,23 @@ function Tasks({ user }) {
                 ))}
               </Form.Select>
             </Form.Group>
+
+            {formData.mainProject && (
+              <Form.Group className="mb-3">
+                <Form.Label>Link to Sub-Project (Optional)</Form.Label>
+                <Form.Select
+                  value={formData.subProject}
+                  onChange={(e) => setFormData({ ...formData, subProject: e.target.value })}
+                  disabled={loadingSubProjects}
+                >
+                  <option value="">No Sub-Project (General Project Task)</option>
+                  {subProjects.map(sp => (
+                    <option key={sp._id} value={sp._id}>{sp.name}</option>
+                  ))}
+                </Form.Select>
+                {loadingSubProjects && <Form.Text className="text-muted">Loading sub-projects...</Form.Text>}
+              </Form.Group>
+            )}
 
             <Form.Group className="mb-3">
               <Form.Label>Tags (comma-separated)</Form.Label>
@@ -620,7 +711,7 @@ function Tasks({ user }) {
           </Form>
         </Modal.Body>
       </Modal>
-    </Container>
+    </Container >
   );
 }
 

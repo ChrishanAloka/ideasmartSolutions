@@ -59,7 +59,11 @@ function App() {
         />
         <Route
           path="/dashboard"
-          element={user ? <Dashboard user={user} /> : <Navigate to="/login" />}
+          element={
+            !user ? <Navigate to="/login" /> :
+              user.role === 'developer' ? <Navigate to="/tasks" /> :
+                <Dashboard user={user} />
+          }
         />
         <Route
           path="/project/:id"
@@ -91,7 +95,7 @@ function App() {
         />
         <Route
           path="/"
-          element={<Navigate to={user ? "/dashboard" : "/login"} />}
+          element={<Navigate to={user ? (user.role === 'developer' ? '/tasks' : '/dashboard') : '/login'} />}
         />
       </Routes>
     </Router>

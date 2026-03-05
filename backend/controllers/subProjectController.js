@@ -8,20 +8,30 @@ const getSubProjects = async (req, res) => {
   try {
     // Verify main project exists and user has access
     const mainProject = await MainProject.findById(req.params.projectId);
-    
+
     if (!mainProject) {
       res.status(404);
       throw new Error('Main project not found');
     }
 
-    if (mainProject.user.toString() !== req.user._id.toString()) {
-      res.status(401);
-      throw new Error('Not authorized');
+    // Check user access: Admin, Owner, or Developer with task
+    if (req.user.role !== 'admin' && mainProject.user.toString() !== req.user._id.toString()) {
+      if (req.user.role === 'developer') {
+        const Task = require('../models/Task');
+        const hasTask = await Task.findOne({ mainProject: mainProject._id, assignedTo: req.user._id });
+        if (!hasTask) {
+          res.status(401);
+          throw new Error('Not authorized to view sub-projects');
+        }
+      } else {
+        res.status(401);
+        throw new Error('Not authorized');
+      }
     }
 
     const subProjects = await SubProject.find({ mainProject: req.params.projectId })
       .sort({ createdAt: -1 });
-    
+
     res.json(subProjects);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -41,10 +51,20 @@ const getSubProject = async (req, res) => {
     }
 
     // Check user ownership through main project
+    // Check user access: Admin, Owner, or Developer with task
     const mainProject = await MainProject.findById(subProject.mainProject);
-    if (mainProject.user.toString() !== req.user._id.toString()) {
-      res.status(401);
-      throw new Error('Not authorized');
+    if (req.user.role !== 'admin' && mainProject.user.toString() !== req.user._id.toString()) {
+      if (req.user.role === 'developer') {
+        const Task = require('../models/Task');
+        const hasTask = await Task.findOne({ mainProject: mainProject._id, assignedTo: req.user._id });
+        if (!hasTask) {
+          res.status(401);
+          throw new Error('Not authorized to view sub-project');
+        }
+      } else {
+        res.status(401);
+        throw new Error('Not authorized');
+      }
     }
 
     res.json(subProject);
@@ -60,15 +80,16 @@ const createSubProject = async (req, res) => {
   try {
     // Verify main project exists and user has access
     const mainProject = await MainProject.findById(req.params.projectId);
-    
+
     if (!mainProject) {
       res.status(404);
       throw new Error('Main project not found');
     }
 
-    if (mainProject.user.toString() !== req.user._id.toString()) {
+    // Restricted to Admin or Owner
+    if (req.user.role !== 'admin' && mainProject.user.toString() !== req.user._id.toString()) {
       res.status(401);
-      throw new Error('Not authorized');
+      throw new Error('Not authorized to create sub-projects');
     }
 
     const subProject = await SubProject.create({
@@ -101,10 +122,11 @@ const updateSubProject = async (req, res) => {
     }
 
     // Check user ownership through main project
+    // Restricted to Admin or Owner
     const mainProject = await MainProject.findById(subProject.mainProject);
-    if (mainProject.user.toString() !== req.user._id.toString()) {
+    if (req.user.role !== 'admin' && mainProject.user.toString() !== req.user._id.toString()) {
       res.status(401);
-      throw new Error('Not authorized');
+      throw new Error('Not authorized to update sub-project');
     }
 
     // If status is being updated to Completed, set completed date
@@ -122,7 +144,7 @@ const updateSubProject = async (req, res) => {
     const subProjects = await SubProject.find({ mainProject: subProject.mainProject });
     const totalAmount = subProjects.reduce((sum, sp) => sum + sp.price, 0);
     mainProject.totalAmount = totalAmount;
-    
+
     // Update main project status
     const newStatus = await mainProject.calculateStatus();
     mainProject.status = newStatus;
@@ -147,10 +169,11 @@ const deleteSubProject = async (req, res) => {
     }
 
     // Check user ownership through main project
+    // Restricted to Admin or Owner
     const mainProject = await MainProject.findById(subProject.mainProject);
-    if (mainProject.user.toString() !== req.user._id.toString()) {
+    if (req.user.role !== 'admin' && mainProject.user.toString() !== req.user._id.toString()) {
       res.status(401);
-      throw new Error('Not authorized');
+      throw new Error('Not authorized to delete sub-project');
     }
 
     await subProject.deleteOne();

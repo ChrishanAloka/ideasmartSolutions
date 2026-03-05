@@ -86,8 +86,21 @@ const getMe = async (req, res) => {
   }
 };
 
+// @desc    Get all users
+// @route   GET /api/auth/users
+// @access  Private
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find({}).select('name email role');
+    res.json(users);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
-  getMe
+  getMe,
+  getUsers
 };

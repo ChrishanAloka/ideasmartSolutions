@@ -28,7 +28,12 @@ function Login({ onLogin }) {
     try {
       const response = await authAPI.login(formData);
       onLogin(response.data);
-      navigate('/dashboard');
+      // Redirect developers to tasks, everyone else to dashboard
+      if (response.data.role === 'developer') {
+        navigate('/tasks');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
@@ -57,8 +62,8 @@ function Login({ onLogin }) {
                 <i className="bi bi-lightbulb-fill text-white" style={{ fontSize: '2.5rem', transform: 'rotate(10deg)' }}></i>
               </div> */}
               <img src={logo} alt="Logo" style={{ height: '100px', margin: '0 0 0 0' }} />
-              <h1 className="mb-2" style={{ 
-                fontWeight: '800', 
+              <h1 className="mb-2" style={{
+                fontWeight: '800',
                 background: 'linear-gradient(135deg, #667eea, #764ba2)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -71,21 +76,21 @@ function Login({ onLogin }) {
                 Giving smart solutions for your business
               </p>
             </div>
-            
+
             <Card style={{ borderRadius: '24px', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)' }}>
               <Card.Body className="p-5">
                 <h3 className="mb-4 text-center" style={{ fontWeight: '700', color: '#1f2937' }}>
                   Welcome Back
                 </h3>
                 <p className="text-center text-muted mb-4">Sign in to continue to your dashboard</p>
-                
+
                 {error && (
                   <Alert variant="danger" className="d-flex align-items-center" style={{ animation: 'fadeIn 0.3s ease-out' }}>
                     <i className="bi bi-exclamation-triangle-fill me-2"></i>
                     {error}
                   </Alert>
                 )}
-                
+
                 <Form onSubmit={handleSubmit}>
                   <Form.Group className="mb-4">
                     <Form.Label style={{ fontWeight: '600', color: '#374151' }}>
@@ -99,7 +104,7 @@ function Login({ onLogin }) {
                       onChange={handleChange}
                       placeholder="Enter your email"
                       required
-                      style={{ 
+                      style={{
                         padding: '0.875rem 1rem',
                         fontSize: '1rem',
                         border: '2px solid #e5e7eb',
@@ -120,7 +125,7 @@ function Login({ onLogin }) {
                       onChange={handleChange}
                       placeholder="Enter your password"
                       required
-                      style={{ 
+                      style={{
                         padding: '0.875rem 1rem',
                         fontSize: '1rem',
                         border: '2px solid #e5e7eb',
@@ -129,9 +134,9 @@ function Login({ onLogin }) {
                     />
                   </Form.Group>
 
-                  <Button 
-                    variant="primary" 
-                    type="submit" 
+                  <Button
+                    variant="primary"
+                    type="submit"
                     className="w-100 mb-3"
                     disabled={loading}
                     style={{
@@ -157,15 +162,15 @@ function Login({ onLogin }) {
                       </>
                     )}
                   </Button>
-                  
+
                   <div className="text-center">
                     <p className="mb-0 text-muted">
                       Don't have an account?{' '}
-                      <Link 
-                        to="/register" 
-                        style={{ 
-                          color: '#667eea', 
-                          fontWeight: '600', 
+                      <Link
+                        to="/register"
+                        style={{
+                          color: '#667eea',
+                          fontWeight: '600',
                           textDecoration: 'none',
                           transition: 'all 0.3s ease'
                         }}

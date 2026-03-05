@@ -27,9 +27,9 @@ const taskSchema = new mongoose.Schema({
     default: 0
   },
   assignedTo: {
-    type: String,
-    required: [true, 'Please assign this task to a team or person'],
-    trim: true
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Please assign this task to a team member']
   },
   deadline: {
     type: Date,
@@ -38,6 +38,11 @@ const taskSchema = new mongoose.Schema({
   mainProject: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'MainProject',
+    default: null
+  },
+  subProject: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SubProject',
     default: null
   },
   tags: [{
@@ -61,7 +66,7 @@ const taskSchema = new mongoose.Schema({
 });
 
 // Auto-set completed date when status changes to Completed
-taskSchema.pre('save', function(next) {
+taskSchema.pre('save', function (next) {
   if (this.isModified('status') && this.status === 'Completed' && !this.completedDate) {
     this.completedDate = new Date();
     if (this.progress !== 100) {
@@ -69,6 +74,27 @@ taskSchema.pre('save', function(next) {
     }
   }
   next();
+});
+
+// Update sub-project status when task is saved or deleted
+taskSchema.post('save', async function () {
+  if (this.subProject) {
+    const SubProject = mongoose.model('SubProject');
+    const subProject = await SubProject.findById(this.subProject);
+    if (subProject) {
+      await subProject.calculateStatus();
+    }
+  }
+});
+
+taskSchema.post('remove', async function () {
+  if (this.subProject) {
+    const SubProject = mongoose.model('SubProject');
+    const subProject = await SubProject.findById(this.subProject);
+    if (subProject) {
+      await subProject.calculateStatus();
+    }
+  }
 });
 
 module.exports = mongoose.model('Task', taskSchema);

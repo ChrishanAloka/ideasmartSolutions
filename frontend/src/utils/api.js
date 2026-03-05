@@ -24,11 +24,27 @@ api.interceptors.request.use(
   }
 );
 
+// Add a response interceptor for handle 401 errors
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token failed or unauthorized
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth API
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
-  getMe: () => api.get('/auth/me')
+  getMe: () => api.get('/auth/me'),
+  getUsers: () => api.get('/auth/users')
 };
 
 // Main Projects API
@@ -38,7 +54,8 @@ export const projectsAPI = {
   create: (data) => api.post('/projects', data),
   update: (id, data) => api.put(`/projects/${id}`, data),
   delete: (id) => api.delete(`/projects/${id}`),
-  updateStatus: (id) => api.put(`/projects/${id}/update-status`)
+  updateStatus: (id) => api.put(`/projects/${id}/update-status`),
+  getSubProjects: (projectId) => api.get(`/projects/${projectId}/subprojects`)
 };
 
 // Sub Projects API
