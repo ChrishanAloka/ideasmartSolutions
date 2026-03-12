@@ -286,7 +286,7 @@ function Proposal() {
                     {/* Thank You */}
                     <div className="text-center mt-4">
                         <p className="text-muted small mb-0">
-                            We look forward to building your success together.
+                            We are looking forward to elevate your business to success.
                         </p>
                     </div>
                 </div>
